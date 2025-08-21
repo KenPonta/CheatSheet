@@ -11,6 +11,9 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { EnhancedTopicSelection } from "@/components/enhanced-topic-selection"
+import { ImageApprovalWorkflow } from "@/components/image-approval-workflow"
+import { FloatingHelpButton } from "@/components/help/help-system"
 import {
   Upload,
   FileText,
@@ -25,6 +28,7 @@ import {
   Download,
   Eye,
   Sparkles,
+  AlertTriangle,
 } from "lucide-react"
 
 const ACCEPTED_FILE_TYPES = {
@@ -38,27 +42,16 @@ const ACCEPTED_FILE_TYPES = {
   "image/png": [".png"],
 }
 
-interface ExtractedTopic {
-  topic: string
-  content: string
-  confidence: number
-  source: string
-}
-
-interface SelectedTopic extends ExtractedTopic {
-  id: string
-  selected: boolean
-  customContent?: string
-}
-
-interface CheatSheetConfig {
-  paperSize: string
-  orientation: string
-  columns: number
-  fontSize: string
-  referenceText: string
-  referenceImage: File | null
-}
+import type {
+  ExtractedTopic,
+  SelectedTopic,
+  CheatSheetConfig,
+  TopicExtractionResponse,
+  CheatSheetGenerationRequest,
+  CheatSheetGenerationResponse,
+  ProcessingError,
+  ProcessingProgress
+} from "@/types/cheat-sheet"
 
 const getFileIcon = (fileType: string) => {
   if (fileType.startsWith("image/")) return <ImageIcon className="h-5 w-5" />
@@ -90,10 +83,20 @@ export default function CheatSheetCreator() {
     fontSize: "small",
     referenceText: "",
     referenceImage: null,
+    includeHeaders: true,
+    includeFooters: true,
   })
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedCheatSheet, setGeneratedCheatSheet] = useState<string | null>(null)
   const [showCheatSheet, setShowCheatSheet] = useState(false)
+  
+  // Enhanced features state
+  const [processingProgress, setProcessingProgress] = useState<ProcessingProgress | null>(null)
+  const [processingErrors, setProcessingErrors] = useState<ProcessingError[]>([])
+  const [warnings, setWarnings] = useState<string[]>([])
+  const [enableImageRecreation, setEnableImageRecreation] = useState(true)
+  const [enableContentValidation, setEnableContentValidation] = useState(true)
+  const [processingStats, setProcessingStats] = useState<any>(null)
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault()
@@ -149,10 +152,24 @@ export default function CheatSheetCreator() {
     if (uploadedFiles.length === 0) return
 
     setIsExtracting(true)
+    setProcessingProgress({
+      stage: 'processing',
+      progress: 0,
+      message: 'Processing files...'
+    })
+    setProcessingErrors([])
+    setWarnings([])
+
     try {
       const formData = new FormData()
       uploadedFiles.forEach((file) => {
         formData.append("files", file)
+      })
+
+      setProcessingProgress({
+        stage: 'extracting',
+        progress: 50,
+        message: 'Extracting topics with AI...'
       })
 
       const response = await fetch("/api/extract-topics", {
@@ -161,23 +178,46 @@ export default function CheatSheetCreator() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to extract topics")
+        const errorData = await response.json()
+        throw new Error(errorData.details || "Failed to extract topics")
       }
 
-      const data = await response.json()
+      const data: TopicExtractionResponse = await response.json()
+      
       setExtractedTopics(data.topics)
       setExtractionComplete(true)
+      setProcessingStats(data.processingStats)
+      
+      if (data.warnings && data.warnings.length > 0) {
+        setWarnings(data.warnings.map(w => `${w.fileName}: ${w.suggestion}`))
+      }
 
-      const initialSelectedTopics: SelectedTopic[] = data.topics.map((topic: ExtractedTopic, index: number) => ({
+      const initialSelectedTopics: SelectedTopic[] = data.topics.map((topic, index) => ({
         ...topic,
-        id: `topic-${index}`,
+        id: topic.id || `topic-${index}`,
         selected: true,
+        originalContent: topic.content,
+        isModified: false,
       }))
       setSelectedTopics(initialSelectedTopics)
+
+      setProcessingProgress({
+        stage: 'extracting',
+        progress: 100,
+        message: `Successfully extracted ${data.topics.length} topics`
+      })
     } catch (error) {
       console.error("Error extracting topics:", error)
+      const processingError: ProcessingError = {
+        type: 'topic_extraction',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        recoverable: true,
+        suggestions: ['Try uploading fewer files', 'Check file formats are supported', 'Ensure files are not corrupted']
+      }
+      setProcessingErrors([processingError])
     } finally {
       setIsExtracting(false)
+      setTimeout(() => setProcessingProgress(null), 3000)
     }
   }
 
@@ -189,7 +229,17 @@ export default function CheatSheetCreator() {
 
   const updateTopicContent = (topicId: string, newContent: string) => {
     setSelectedTopics((prev) =>
-      prev.map((topic) => (topic.id === topicId ? { ...topic, customContent: newContent } : topic)),
+      prev.map((topic) => {
+        if (topic.id === topicId) {
+          const isModified = newContent !== topic.originalContent
+          return { 
+            ...topic, 
+            customContent: newContent,
+            isModified
+          }
+        }
+        return topic
+      }),
     )
   }
 
@@ -223,39 +273,77 @@ export default function CheatSheetCreator() {
     }
 
     setIsGenerating(true)
+    setProcessingProgress({
+      stage: 'generating',
+      progress: 0,
+      message: 'Preparing cheat sheet generation...'
+    })
+    setWarnings([])
+
     try {
+      const generationRequest: CheatSheetGenerationRequest = {
+        topics: finalTopics.map((topic) => ({
+          id: topic.id,
+          topic: topic.topic,
+          content: topic.customContent || topic.content,
+          customContent: topic.customContent,
+          subtopics: topic.subtopics,
+          examples: topic.examples,
+          originalWording: topic.originalWording,
+          priority: 1
+        })),
+        config: cheatSheetConfig,
+        title: 'Study Cheat Sheet',
+        outputFormat: 'html',
+        enableImageRecreation,
+        enableContentValidation
+      }
+
+      setProcessingProgress({
+        stage: 'generating',
+        progress: 30,
+        message: 'Generating layout and content...'
+      })
+
       const response = await fetch("/api/generate-cheatsheet", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          topics: finalTopics.map((topic) => ({
-            topic: topic.topic,
-            content: topic.content,
-            customContent: topic.customContent,
-          })),
-          config: {
-            paperSize: cheatSheetConfig.paperSize,
-            orientation: cheatSheetConfig.orientation,
-            columns: cheatSheetConfig.columns,
-            fontSize: cheatSheetConfig.fontSize,
-            referenceText: cheatSheetConfig.referenceText,
-          },
-        }),
+        body: JSON.stringify(generationRequest),
       })
 
       if (!response.ok) {
-        throw new Error("Failed to generate cheat sheet")
+        const errorData = await response.json()
+        throw new Error(errorData.details || "Failed to generate cheat sheet")
       }
 
-      const data = await response.json()
+      const data: CheatSheetGenerationResponse = await response.json()
+      
       setGeneratedCheatSheet(data.html)
       setShowCheatSheet(true)
+      
+      if (data.warnings && data.warnings.length > 0) {
+        setWarnings(data.warnings)
+      }
+
+      setProcessingProgress({
+        stage: 'generating',
+        progress: 100,
+        message: `Generated ${data.pageCount} page cheat sheet successfully`
+      })
     } catch (error) {
       console.error("Error generating cheat sheet:", error)
+      const processingError: ProcessingError = {
+        type: 'generation',
+        message: error instanceof Error ? error.message : 'Unknown error occurred',
+        recoverable: true,
+        suggestions: ['Try reducing the number of topics', 'Check your configuration settings', 'Try a different paper size']
+      }
+      setProcessingErrors([processingError])
     } finally {
       setIsGenerating(false)
+      setTimeout(() => setProcessingProgress(null), 3000)
     }
   }
 
@@ -294,6 +382,10 @@ export default function CheatSheetCreator() {
     setShowCustomization(false)
     setShowCheatSheet(false)
     setGeneratedCheatSheet(null)
+    setProcessingProgress(null)
+    setProcessingErrors([])
+    setWarnings([])
+    setProcessingStats(null)
     setCheatSheetConfig({
       paperSize: "a4",
       orientation: "portrait",
@@ -301,6 +393,8 @@ export default function CheatSheetCreator() {
       fontSize: "small",
       referenceText: "",
       referenceImage: null,
+      includeHeaders: true,
+      includeFooters: true,
     })
   }
 
@@ -318,6 +412,13 @@ export default function CheatSheetCreator() {
 
   return (
     <div className="min-h-screen bg-background">
+      <FloatingHelpButton workflowStage={
+        showCheatSheet ? 'generation' :
+        showCustomization ? 'customization' :
+        showTopicSelection ? 'topics' :
+        isExtracting ? 'processing' :
+        'upload'
+      } />
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
@@ -358,6 +459,92 @@ export default function CheatSheetCreator() {
 
       <main className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto space-y-8">
+          {/* Progress Indicator */}
+          {processingProgress && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-center gap-3">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="font-medium">{processingProgress.message}</span>
+                      <span className="text-sm text-muted-foreground">{processingProgress.progress}%</span>
+                    </div>
+                    <div className="w-full bg-muted rounded-full h-2">
+                      <div 
+                        className="bg-primary h-2 rounded-full transition-all duration-300"
+                        style={{ width: `${processingProgress.progress}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Error Messages */}
+          {processingErrors.length > 0 && (
+            <Card className="border-destructive">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                  <CardTitle className="text-destructive">Processing Errors</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {processingErrors.map((error, index) => (
+                  <div key={index} className="space-y-2">
+                    <p className="text-sm font-medium">{error.message}</p>
+                    {error.suggestions && error.suggestions.length > 0 && (
+                      <div className="text-sm text-muted-foreground">
+                        <p className="font-medium">Suggestions:</p>
+                        <ul className="list-disc list-inside space-y-1">
+                          {error.suggestions.map((suggestion, i) => (
+                            <li key={i}>{suggestion}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Warnings */}
+          {warnings.length > 0 && (
+            <Card className="border-yellow-200 bg-yellow-50">
+              <CardHeader>
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-yellow-600" />
+                  <CardTitle className="text-yellow-800">Warnings</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ul className="space-y-1 text-sm text-yellow-700">
+                  {warnings.map((warning, index) => (
+                    <li key={index}>• {warning}</li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Processing Stats */}
+          {processingStats && (
+            <Card className="bg-blue-50 border-blue-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="font-medium text-blue-800">Processing Statistics</span>
+                  <div className="flex gap-4 text-blue-600">
+                    <span>Time: {(processingStats.totalProcessingTime / 1000).toFixed(1)}s</span>
+                    <span>Cache hits: {processingStats.cacheHits}</span>
+                    <span>Memory: {(processingStats.memoryUsage / 1024 / 1024).toFixed(1)}MB</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
           {showCheatSheet && generatedCheatSheet && (
             <Card>
               <CardHeader>
@@ -574,6 +761,54 @@ export default function CheatSheetCreator() {
                   </div>
                 </div>
 
+                {/* Enhanced Features */}
+                <div className="space-y-4">
+                  <Label className="text-base font-semibold">Enhanced Features</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enable AI-powered enhancements for better cheat sheet quality.
+                  </p>
+                  
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="image-recreation"
+                            checked={enableImageRecreation}
+                            onCheckedChange={setEnableImageRecreation}
+                          />
+                          <Label htmlFor="image-recreation" className="font-medium">
+                            AI Image Recreation
+                          </Label>
+                        </div>
+                        <p className="text-xs text-muted-foreground ml-6">
+                          Recreate diagrams and examples using AI for better clarity and consistency
+                        </p>
+                      </div>
+                      <Brain className="h-5 w-5 text-primary" />
+                    </div>
+                    
+                    <div className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id="content-validation"
+                            checked={enableContentValidation}
+                            onCheckedChange={setEnableContentValidation}
+                          />
+                          <Label htmlFor="content-validation" className="font-medium">
+                            Content Fidelity Validation
+                          </Label>
+                        </div>
+                        <p className="text-xs text-muted-foreground ml-6">
+                          Validate that modified content maintains accuracy to original sources
+                        </p>
+                      </div>
+                      <CheckCircle className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
+                </div>
+
                 {/* Selected Topics Preview */}
                 <div className="space-y-3">
                   <Label className="text-base font-semibold">Selected Topics Preview</Label>
@@ -757,110 +992,14 @@ export default function CheatSheetCreator() {
           )}
 
           {showTopicSelection && selectedTopics.length > 0 && !showCustomization && !showCheatSheet && (
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-2">
-                  <CheckCircle className="h-5 w-5 text-green-600" />
-                  <CardTitle className="font-serif text-2xl">Select Topics for Your Cheat Sheet</CardTitle>
-                </div>
-                <CardDescription>
-                  Choose which topics to include and customize their content. You have {getSelectedTopicsCount()} of{" "}
-                  {selectedTopics.length} topics selected.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {selectedTopics.map((topic) => (
-                    <div
-                      key={topic.id}
-                      className={`border rounded-lg p-4 transition-all ${
-                        topic.selected ? "border-primary bg-primary/5" : "border-border bg-muted/30"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <Checkbox
-                          id={topic.id}
-                          checked={topic.selected}
-                          onCheckedChange={() => toggleTopicSelection(topic.id)}
-                          className="mt-1"
-                        />
-                        <div className="flex-1 space-y-2">
-                          <div className="flex items-start justify-between">
-                            <label
-                              htmlFor={topic.id}
-                              className={`font-semibold text-lg cursor-pointer ${
-                                topic.selected ? "text-foreground" : "text-muted-foreground"
-                              }`}
-                            >
-                              {topic.topic}
-                            </label>
-                            <div className="flex items-center gap-2">
-                              <Badge className={`text-xs ${getConfidenceColor(topic.confidence)}`}>
-                                {Math.round(topic.confidence * 100)}% confidence
-                              </Badge>
-                              {topic.selected && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => setEditingTopic(editingTopic === topic.id ? null : topic.id)}
-                                  className="text-xs"
-                                >
-                                  {editingTopic === topic.id ? "Done" : "Edit"}
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-
-                          {editingTopic === topic.id ? (
-                            <div className="space-y-2">
-                              <Textarea
-                                value={topic.customContent || topic.content}
-                                onChange={(e) => updateTopicContent(topic.id, e.target.value)}
-                                placeholder="Edit the content for this topic..."
-                                className="min-h-[100px]"
-                              />
-                              <p className="text-xs text-muted-foreground">
-                                Customize this content to better fit your cheat sheet needs.
-                              </p>
-                            </div>
-                          ) : (
-                            <p className={`${topic.selected ? "text-foreground" : "text-muted-foreground"}`}>
-                              {topic.customContent || topic.content}
-                            </p>
-                          )}
-
-                          <p className="text-xs text-muted-foreground">Source: {topic.source}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="mt-6 p-4 bg-muted rounded-lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="font-semibold">Selection Summary</h4>
-                      <p className="text-sm text-muted-foreground">
-                        {getSelectedTopicsCount()} topics selected for your cheat sheet
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button variant="outline" onClick={() => setShowTopicSelection(false)}>
-                        Back to Upload
-                      </Button>
-                      <Button
-                        onClick={proceedToCustomization}
-                        disabled={getSelectedTopicsCount() === 0}
-                        className="px-6"
-                      >
-                        Continue to Customization
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <EnhancedTopicSelection
+              topics={selectedTopics}
+              onTopicToggle={toggleTopicSelection}
+              onTopicContentUpdate={updateTopicContent}
+              onContinue={proceedToCustomization}
+              onBack={() => setShowTopicSelection(false)}
+              config={cheatSheetConfig}
+            />
           )}
 
           {extractedTopics.length > 0 && !showTopicSelection && !showCustomization && !showCheatSheet && (

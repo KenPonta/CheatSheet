@@ -19,9 +19,13 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@/backend/*": ["./backend/*"],
+      "@/components/*": ["./components/*"],
+      "@/lib/*": ["./backend/lib/*"],
+      "@/types/*": ["./backend/types/*"]
     }
   },
-  "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
+  "include": ["next-env.d.ts", "app/**/*.ts", "app/**/*.tsx", "components/**/*.ts", "components/**/*.tsx", "backend/**/*.ts", "backend/**/*.tsx", ".next/types/**/*.ts"],
   "exclude": ["node_modules"]
 }
