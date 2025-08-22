@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getImageRecreationService } from '@/lib/ai';
-import type { ExtractedImage, ImageRecreationResult } from '@/lib/ai/types';
+import { getImageRecreationService } from '@/backend/lib/ai';
+import type { ExtractedImage, ImageRecreationResult } from '@/backend/lib/ai/types';
 
 export async function POST(request: NextRequest) {
   try {

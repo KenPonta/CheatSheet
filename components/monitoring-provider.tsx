@@ -6,7 +6,7 @@
  */
 
 import { useEffect } from 'react';
-import { initMonitoring } from '../lib/monitoring';
+import { initMonitoring } from '../backend/lib/monitoring';
 
 interface MonitoringProviderProps {
   children: React.ReactNode;

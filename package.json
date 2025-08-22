@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "build": "next build",
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS='--max-old-space-size=4096' next dev",
+    "dev:low-memory": "NODE_OPTIONS='--max-old-space-size=2048 --optimize-for-size' next dev",
     "lint": "next lint",
     "start": "next start",
     "test": "jest",
@@ -16,7 +17,15 @@
     "health-check": "curl -f http://localhost:3000/api/health || exit 1",
     "monitoring:stats": "curl -s http://localhost:3000/api/monitoring/stats | jq .",
     "env:validate": "node -e \"require('./backend/lib/config/environment.ts')\"",
-    "precommit": "npm run lint && npm run test -- --passWithNoTests --watchAll=false"
+    "precommit": "npm run lint && npm run test -- --passWithNoTests --watchAll=false",
+    "memory:check": "node scripts/memory-manager.js check",
+    "memory:clean": "node scripts/memory-manager.js clean",
+    "memory:dev": "node scripts/memory-manager.js dev",
+    "processing:cpu": "PROCESSING_MODE=cpu_optimized npm run dev",
+    "processing:memory": "PROCESSING_MODE=memory_optimized npm run dev",
+    "processing:balanced": "PROCESSING_MODE=balanced npm run dev",
+    "system:check": "./scripts/system-optimizer.sh check",
+    "system:optimize": "./scripts/system-optimizer.sh optimize"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

@@ -29,12 +29,12 @@ export class MemoryManager {
   private gcTimer?: NodeJS.Timeout;
   
   private readonly config: MemoryConfig = {
-    warningThreshold: 75,
-    criticalThreshold: 90,
-    maxConcurrentFiles: 3,
-    maxFileSize: 100 * 1024 * 1024, // 100MB
+    warningThreshold: 80,
+    criticalThreshold: 95, // Increased for development
+    maxConcurrentFiles: 2, // Reduced for better memory management
+    maxFileSize: 50 * 1024 * 1024, // Reduced to 50MB
     enableGarbageCollection: true,
-    gcIntervalMs: 30000 // 30 seconds
+    gcIntervalMs: 15000 // More frequent GC
   };
 
   constructor(config?: Partial<MemoryConfig>) {
