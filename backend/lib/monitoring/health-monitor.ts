@@ -3,7 +3,7 @@
  * Monitors application health and sends alerts when issues are detected
  */
 
-import { env, appConfig } from '../config/environment';
+import { env, getAppConfig } from '../config/environment';
 import { reportError, reportMessage } from './sentry';
 import { trackEvent } from './analytics';
 
@@ -91,11 +91,12 @@ class HealthMonitor {
     this.performHealthCheck();
 
     // Set up periodic health checks
+    const config = getAppConfig();
     this.monitoringInterval = setInterval(() => {
       this.performHealthCheck();
-    }, appConfig.healthCheck.interval);
+    }, config.healthCheck.interval);
 
-    console.log(`✅ Health monitoring started (interval: ${appConfig.healthCheck.interval}ms)`);
+    console.log(`✅ Health monitoring started (interval: ${config.healthCheck.interval}ms)`);
   }
 
   // Stop monitoring
@@ -119,12 +120,25 @@ class HealthMonitor {
     const startTime = Date.now();
     
     try {
-      const response = await fetch('/api/health', {
+      const config = getAppConfig();
+      // Use absolute URL for server-side fetch
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+      const response = await fetch(`${baseUrl}/api/health`, {
         method: 'GET',
-        signal: AbortSignal.timeout(appConfig.healthCheck.timeout),
+        signal: AbortSignal.timeout(config.healthCheck.timeout),
       });
 
       const responseTime = Date.now() - startTime;
+      
+      if (!response.ok) {
+        throw new Error(`Health check failed with status ${response.status}`);
+      }
+      
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error(`Health check returned non-JSON response: ${contentType}`);
+      }
+      
       const healthData = await response.json();
 
       const metrics: HealthMetrics = {
@@ -325,11 +339,3 @@ class HealthMonitor {
 
 // Singleton instance
 export const healthMonitor = new HealthMonitor();
-
-// Auto-start monitoring in production
-if (typeof window === 'undefined' && process.env.NODE_ENV === 'production') {
-  // Start monitoring after a short delay to allow app initialization
-  setTimeout(() => {
-    healthMonitor.startMonitoring();
-  }, 10000); // 10 seconds
-}

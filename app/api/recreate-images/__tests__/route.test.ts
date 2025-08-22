@@ -1,8 +1,8 @@
 import { describe, it, expect, jest, beforeEach } from '@jest/globals';
 import { NextRequest } from 'next/server';
 import { POST, GET } from '../route';
-import { getImageRecreationService } from '@/lib/ai';
-import type { ImageRecreationResult, ExtractedImage } from '@/lib/ai/types';
+import { getImageRecreationService } from '@/backend/lib/ai';
+import type { ImageRecreationResult, ExtractedImage } from '@/backend/lib/ai/types';
 
 // Mock the image recreation service
 jest.mock('@/lib/ai', () => ({

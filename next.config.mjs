@@ -11,10 +11,20 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  // Production optimizations
+  // Memory optimization
   experimental: {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
+    // Reduce memory usage during builds
+    memoryBasedWorkers: true,
+    // Enable webpack cache for faster builds
+    webpackBuildWorker: true,
   },
+  // Reduce bundle size and memory usage
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production',
+  },
+  // Optimize for memory usage
+  swcMinify: true,
   // Security headers
   async headers() {
     return [

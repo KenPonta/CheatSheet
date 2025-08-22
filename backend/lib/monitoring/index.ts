@@ -28,8 +28,10 @@ export function initMonitoring() {
     }
   }
 
-  // Start health monitoring in production
-  if (isProduction() && typeof window === 'undefined') {
+  // Start health monitoring only in production and when explicitly enabled
+  if (isProduction() && 
+      typeof window === 'undefined' && 
+      process.env.ENABLE_HEALTH_MONITORING === 'true') {
     try {
       // Delay health monitoring start to allow app initialization
       setTimeout(() => {

@@ -4,9 +4,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { healthMonitor } from '../../../../lib/monitoring/health-monitor';
-import { getAIUsageStats, getAIOptimizationSuggestions } from '../../../../lib/monitoring/ai-usage-tracker';
-import { isDevelopment } from '../../../../lib/config/environment';
+import { healthMonitor } from '../../../../backend/lib/monitoring/health-monitor';
+import { getAIUsageStats, getAIOptimizationSuggestions } from '../../../../backend/lib/monitoring/ai-usage-tracker';
+import { isDevelopment } from '../../../../backend/lib/config/environment';
 
 export async function GET(request: NextRequest) {
   // Only allow access in development or with proper authentication
@@ -27,6 +27,19 @@ export async function GET(request: NextRequest) {
     const healthStats = healthMonitor.getHealthStats(minutes);
     const currentHealth = healthMonitor.getCurrentStatus();
     const healthHistory = healthMonitor.getHealthHistory(minutes);
+
+    // If no health data is available, perform a one-time health check
+    let liveHealthCheck = null;
+    if (!currentHealth) {
+      try {
+        const healthResponse = await fetch(`${request.nextUrl.origin}/api/health`);
+        if (healthResponse.ok) {
+          liveHealthCheck = await healthResponse.json();
+        }
+      } catch (error) {
+        console.warn('Failed to perform live health check:', error);
+      }
+    }
 
     // Get AI usage statistics
     const aiStats = getAIUsageStats('day');
@@ -52,9 +65,10 @@ export async function GET(request: NextRequest) {
       timestamp: new Date().toISOString(),
       timeframe: `${minutes} minutes`,
       health: {
-        current: currentHealth,
+        current: currentHealth || liveHealthCheck,
         stats: healthStats,
         history: healthHistory,
+        note: !currentHealth ? 'Live health check performed (monitoring not started)' : undefined,
       },
       ai: {
         usage: aiStats,

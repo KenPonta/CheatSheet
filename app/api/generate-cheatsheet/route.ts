@@ -1,9 +1,9 @@
 import { type NextRequest, NextResponse } from "next/server"
-import { pdfGenerator } from "@/lib/pdf-generation"
-import { GenerationRequest, CheatSheetTopic, CheatSheetConfig } from "@/lib/pdf-generation/types"
-import { getImageRecreationService } from "@/lib/ai"
-import { getAIContentService } from "@/lib/ai"
-import type { ExtractedImage } from "@/lib/ai/types"
+import { pdfGenerator } from "@/backend/lib/pdf-generation"
+import { GenerationRequest, CheatSheetTopic, CheatSheetConfig } from "@/backend/lib/pdf-generation/types"
+import { getImageRecreationService } from "@/backend/lib/ai"
+import { getAIContentService } from "@/backend/lib/ai"
+import type { ExtractedImage } from "@/backend/lib/ai/types"
 
 interface GenerateCheatSheetRequest {
   topics: Array<{

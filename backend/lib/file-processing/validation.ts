@@ -83,12 +83,12 @@ export class FileValidator {
     const warnings: string[] = [];
     const suggestions: string[] = [];
 
-    const extension = this.getFileExtension(file.name);
-    const detectedType = fileType || this.detectFileType(file);
+    const extension = FileValidator.getFileExtension(file.name);
+    const detectedType = fileType || FileValidator.detectFileType(file);
     
     const fileInfo = {
       size: file.size,
-      sizeFormatted: this.formatFileSize(file.size),
+      sizeFormatted: FileValidator.formatFileSize(file.size),
       extension,
       mimeType: file.type
     };
@@ -105,17 +105,17 @@ export class FileValidator {
 
     // Type-specific validation
     if (detectedType) {
-      const config = this.FILE_TYPE_CONFIGS[detectedType];
+      const config = FileValidator.FILE_TYPE_CONFIGS[detectedType];
       
       // Size validation
       if (file.size > config.maxFileSize) {
         errors.push(
-          `File size ${fileInfo.sizeFormatted} exceeds maximum allowed size of ${this.formatFileSize(config.maxFileSize)} for ${detectedType.toUpperCase()} files`
+          `File size ${fileInfo.sizeFormatted} exceeds maximum allowed size of ${FileValidator.formatFileSize(config.maxFileSize)} for ${detectedType.toUpperCase()} files`
         );
         suggestions.push('Try compressing the file or splitting it into smaller parts');
       } else if (file.size > config.maxFileSize * 0.8) {
         warnings.push(
-          `File size ${fileInfo.sizeFormatted} is close to the maximum limit of ${this.formatFileSize(config.maxFileSize)}`
+          `File size ${fileInfo.sizeFormatted} is close to the maximum limit of ${FileValidator.formatFileSize(config.maxFileSize)}`
         );
       }
 
@@ -132,14 +132,14 @@ export class FileValidator {
       }
 
       // File name validation
-      if (this.hasProblematicCharacters(file.name)) {
+      if (FileValidator.hasProblematicCharacters(file.name)) {
         warnings.push('File name contains special characters that may cause issues');
         suggestions.push('Consider renaming the file to use only letters, numbers, hyphens, and underscores');
       }
 
     } else {
       errors.push('Unsupported file format');
-      suggestions.push(`Supported formats: ${Object.keys(this.FILE_TYPE_CONFIGS).join(', ').toUpperCase()}`);
+      suggestions.push(`Supported formats: ${Object.keys(FileValidator.FILE_TYPE_CONFIGS).join(', ').toUpperCase()}`);
     }
 
     return {
@@ -166,7 +166,7 @@ export class FileValidator {
     let totalSize = 0;
 
     for (const file of files) {
-      const validation = this.validateFileEnhanced(file);
+      const validation = FileValidator.validateFileEnhanced(file);
       totalSize += file.size;
 
       if (validation.isValid) {
@@ -180,7 +180,7 @@ export class FileValidator {
       valid,
       invalid,
       totalSize,
-      totalSizeFormatted: this.formatFileSize(totalSize)
+      totalSizeFormatted: FileValidator.formatFileSize(totalSize)
     };
   }
 
@@ -202,16 +202,16 @@ export class FileValidator {
       maxSize: maxTotalSize,
       message: isValid 
         ? undefined 
-        : `Total file size ${this.formatFileSize(totalSize)} exceeds maximum allowed ${this.formatFileSize(maxTotalSize)}`
+        : `Total file size ${FileValidator.formatFileSize(totalSize)} exceeds maximum allowed ${FileValidator.formatFileSize(maxTotalSize)}`
     };
   }
 
   private static detectFileType(file: File): SupportedFileType | undefined {
     const mimeType = file.type.toLowerCase();
-    const extension = this.getFileExtension(file.name);
+    const extension = FileValidator.getFileExtension(file.name);
 
     // Check each file type configuration
-    for (const [type, config] of Object.entries(this.FILE_TYPE_CONFIGS)) {
+    for (const [type, config] of Object.entries(FileValidator.FILE_TYPE_CONFIGS)) {
       if (config.allowedMimeTypes.includes(mimeType) || 
           config.allowedExtensions.includes(extension)) {
         return type as SupportedFileType;
@@ -245,7 +245,7 @@ export class FileValidator {
    * Get validation configuration for a specific file type
    */
   static getValidationConfig(fileType: SupportedFileType): ValidationConfig {
-    return { ...this.FILE_TYPE_CONFIGS[fileType] };
+    return { ...FileValidator.FILE_TYPE_CONFIGS[fileType] };
   }
 
   /**
@@ -257,15 +257,15 @@ export class FileValidator {
     mimeTypes: string[];
     maxSizes: Record<SupportedFileType, string>;
   } {
-    const types = Object.keys(this.FILE_TYPE_CONFIGS) as SupportedFileType[];
+    const types = Object.keys(FileValidator.FILE_TYPE_CONFIGS) as SupportedFileType[];
     const extensions: string[] = [];
     const mimeTypes: string[] = [];
     const maxSizes: Record<SupportedFileType, string> = {} as any;
 
-    for (const [type, config] of Object.entries(this.FILE_TYPE_CONFIGS)) {
+    for (const [type, config] of Object.entries(FileValidator.FILE_TYPE_CONFIGS)) {
       extensions.push(...config.allowedExtensions);
       mimeTypes.push(...config.allowedMimeTypes);
-      maxSizes[type as SupportedFileType] = this.formatFileSize(config.maxFileSize);
+      maxSizes[type as SupportedFileType] = FileValidator.formatFileSize(config.maxFileSize);
     }
 
     return {

@@ -33,13 +33,15 @@ import {
 
 const ACCEPTED_FILE_TYPES = {
   "application/pdf": [".pdf"],
-  "application/msword": [".doc"],
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
-  "application/vnd.ms-powerpoint": [".ppt"],
   "application/vnd.openxmlformats-officedocument.presentationml.presentation": [".pptx"],
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": [".xlsx"],
   "text/plain": [".txt"],
   "image/jpeg": [".jpg", ".jpeg"],
   "image/png": [".png"],
+  "image/gif": [".gif"],
+  "image/bmp": [".bmp"],
+  "image/webp": [".webp"],
 }
 
 import type {
@@ -51,7 +53,7 @@ import type {
   CheatSheetGenerationResponse,
   ProcessingError,
   ProcessingProgress
-} from "@/types/cheat-sheet"
+} from "@/backend/types/cheat-sheet"
 
 const getFileIcon = (fileType: string) => {
   if (fileType.startsWith("image/")) return <ImageIcon className="h-5 w-5" />
@@ -114,6 +116,30 @@ export default function CheatSheetCreator() {
 
     const files = Array.from(e.dataTransfer.files)
     const validFiles = files.filter((file) => Object.keys(ACCEPTED_FILE_TYPES).includes(file.type))
+    const invalidFiles = files.filter((file) => !Object.keys(ACCEPTED_FILE_TYPES).includes(file.type))
+
+    if (invalidFiles.length > 0) {
+      const invalidFileNames = invalidFiles.map(f => f.name).join(', ')
+      const isLegacyOffice = invalidFiles.some(f => 
+        f.name.endsWith('.doc') || f.name.endsWith('.ppt') || f.name.endsWith('.xls')
+      )
+      
+      const errorMessage = isLegacyOffice 
+        ? `Legacy Office files detected (${invalidFileNames}). Please save as .docx, .pptx, or .xlsx formats.`
+        : `Unsupported file format(s): ${invalidFileNames}. Please use supported formats.`
+      
+      const processingError: ProcessingError = {
+        type: 'file_processing',
+        message: errorMessage,
+        recoverable: true,
+        suggestions: [
+          'Convert legacy Office files (.doc, .ppt, .xls) to modern formats (.docx, .pptx, .xlsx)',
+          'Use supported formats: PDF, Word, PowerPoint, Excel, Text, or Images',
+          'Check that files are not corrupted'
+        ]
+      }
+      setProcessingErrors([processingError])
+    }
 
     setUploadedFiles((prev) => [...prev, ...validFiles])
     setExtractionComplete(false)
@@ -179,7 +205,10 @@ export default function CheatSheetCreator() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.details || "Failed to extract topics")
+        const errorMessage = typeof errorData.details === 'string' 
+          ? errorData.details 
+          : errorData.error || "Failed to extract topics"
+        throw new Error(errorMessage)
       }
 
       const data: TopicExtractionResponse = await response.json()
@@ -315,7 +344,10 @@ export default function CheatSheetCreator() {
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(errorData.details || "Failed to generate cheat sheet")
+        const errorMessage = typeof errorData.details === 'string' 
+          ? errorData.details 
+          : errorData.error || "Failed to generate cheat sheet"
+        throw new Error(errorMessage)
       }
 
       const data: CheatSheetGenerationResponse = await response.json()
@@ -924,8 +956,13 @@ export default function CheatSheetCreator() {
                   >
                     <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <h3 className="text-lg font-semibold mb-2">Drop files here or click to browse</h3>
-                    <p className="text-muted-foreground mb-4">
+                    <p className="text-muted-foreground mb-2">
                       Drag and drop your files here, or click the button below to select files
+                    </p>
+                    <p className="text-xs text-muted-foreground mb-4">
+                      Supported: PDF, Word (.docx), PowerPoint (.pptx), Excel (.xlsx), Text (.txt), Images (JPG, PNG, GIF, BMP, WebP)
+                      <br />
+                      <span className="text-amber-600">Note: Legacy formats (.doc, .ppt, .xls) are not supported. Please save as modern formats.</span>
                     </p>
                     <input
                       type="file"

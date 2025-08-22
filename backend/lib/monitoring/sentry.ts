@@ -95,15 +95,15 @@ export function reportMessage(message: string, level: 'info' | 'warning' | 'erro
 }
 
 // Performance monitoring
-export function startTransaction(name: string, operation: string) {
+export function startSpan(name: string, operation: string) {
   if (!hasErrorTracking()) {
     return null;
   }
 
-  return Sentry.startTransaction({
+  return Sentry.startSpan({
     name,
     op: operation,
-  });
+  }, () => {});
 }
 
 export function measurePerformance<T>(
@@ -111,21 +111,22 @@ export function measurePerformance<T>(
   operation: string,
   fn: () => Promise<T>
 ): Promise<T> {
-  const transaction = startTransaction(name, operation);
-  
-  return fn()
-    .then((result) => {
-      transaction?.setStatus('ok');
+  if (!hasErrorTracking()) {
+    return fn();
+  }
+
+  return Sentry.startSpan({
+    name,
+    op: operation,
+  }, async () => {
+    try {
+      const result = await fn();
       return result;
-    })
-    .catch((error) => {
-      transaction?.setStatus('internal_error');
-      reportError(error, { operation: name });
+    } catch (error) {
+      reportError(error as Error, { operation: name });
       throw error;
-    })
-    .finally(() => {
-      transaction?.finish();
-    });
+    }
+  });
 }
 
 // User context
