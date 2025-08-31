@@ -5,18 +5,33 @@ import { getTopicExtractionService } from "@/backend/lib/ai"
 import type { ExtractedContent, OrganizedTopic } from "@/backend/lib/ai/types"
 
 export async function POST(request: NextRequest) {
+  console.log('🚀 API Route: Starting file processing...');
+  
   try {
     const formData = await request.formData()
     const files = formData.getAll("files") as File[]
 
+    console.log(`📁 Received ${files.length} files:`, files.map(f => ({ name: f.name, size: f.size, type: f.type })));
+
     if (!files || files.length === 0) {
+      console.log('❌ No files provided');
       return NextResponse.json({ error: "No files provided" }, { status: 400 })
     }
 
     // Validate files before processing
+    console.log('🔍 Starting file validation...');
     const validationResults = await Promise.all(
-      files.map(file => FileProcessing.validate(file))
+      files.map(file => {
+        console.log(`🔍 Validating file: ${file.name}`);
+        return FileProcessing.validate(file);
+      })
     )
+
+    console.log('✅ Validation completed:', validationResults.map(r => ({ 
+      isValid: r.isValid, 
+      errors: r.errors,
+      fileType: r.fileType 
+    })));
 
     const invalidFiles = validationResults.filter(result => !result.isValid)
     if (invalidFiles.length > 0) {
@@ -58,36 +73,95 @@ export async function POST(request: NextRequest) {
       global.gc()
     }
     
-    // Use CPU-optimized processing for better memory efficiency
-    const cpuProcessor = createCPUOptimizedProcessor({
-      chunkSize: 32 * 1024, // 32KB chunks for very low memory usage
-      maxMemoryUsage: 100 * 1024 * 1024, // 100MB max memory
-      useDiskBuffer: true,
-      enableStreaming: true
-    });
-
     let processingResults;
+    
+    // Try CPU-optimized processing first, fallback to standard processing
     try {
-      // Process files sequentially to minimize memory usage
-      const cpuResults = await cpuProcessor.processMultipleFilesSequential(files);
+      console.log('🔧 Attempting CPU-optimized processing...');
+      const cpuProcessor = createCPUOptimizedProcessor({
+        chunkSize: 32 * 1024, // 32KB chunks for very low memory usage
+        maxMemoryUsage: 100 * 1024 * 1024, // 100MB max memory
+        useDiskBuffer: false, // Disable disk buffer for compatibility
+        enableStreaming: true
+      });
+
+      try {
+        console.log('🔄 Processing files sequentially...');
+        // Process files sequentially to minimize memory usage
+        const cpuResults = await cpuProcessor.processMultipleFilesSequential(files);
+        
+        console.log('📊 CPU processing results:', cpuResults.map(r => ({ 
+          fileName: r.fileName, 
+          success: r.success, 
+          error: r.error,
+          contentLength: r.content?.length 
+        })));
+        
+        // Check if any files were successfully processed
+        const successfulResults = cpuResults.filter(result => result.success);
+        
+        if (successfulResults.length === 0) {
+          console.log('❌ CPU-optimized processing failed for all files');
+          throw new Error('CPU-optimized processing failed for all files');
+        }
+        
+        // Convert CPU processor results to expected format
+        processingResults = cpuResults.map((result, index) => ({
+          fileName: result.fileName,
+          success: result.success,
+          content: result.success ? {
+            text: result.content || '',
+            images: [], // Images disabled for memory efficiency
+            tables: [],
+            metadata: {
+              name: result.fileName,
+              size: files[index]?.size || 0,
+              type: files[index]?.type || 'unknown',
+              lastModified: files[index]?.lastModified ? new Date(files[index].lastModified) : new Date(),
+              wordCount: result.metadata?.wordCount || 0,
+              ...(result.metadata || {})
+            },
+            structure: { 
+              headings: [], 
+              sections: [],
+              hierarchy: 0
+            }
+          } : undefined,
+          error: result.error,
+          processingTime: result.processingTime
+        }));
+        
+        console.log(`CPU-optimized processing succeeded for ${successfulResults.length}/${files.length} files`);
+      } finally {
+        cpuProcessor.cleanup();
+      }
+    } catch (cpuError) {
+      console.warn('⚠️  CPU-optimized processing failed, falling back to standard processing:', cpuError.message);
+      console.warn('Stack trace:', cpuError.stack);
       
-      // Convert CPU processor results to expected format
-      processingResults = cpuResults.map(result => ({
-        fileName: result.fileName,
-        success: result.success,
-        content: result.success ? {
-          text: result.content || '',
-          images: [], // Images disabled for memory efficiency
-          tables: [],
-          metadata: result.metadata || {},
-          structure: { headings: [], sections: [] }
-        } : undefined,
-        error: result.error,
-        processingTime: result.processingTime
-      }));
-    } finally {
-      // Always cleanup CPU processor resources
-      cpuProcessor.cleanup();
+      // Fallback to standard file processing
+      try {
+        console.log('🔄 Attempting standard file processing...');
+        const standardResults = await FileProcessing.processMultipleFilesEnhanced(files, {
+          enableOCR: false, // Disable OCR to save memory
+          preserveFormatting: false, // Disable formatting to save memory
+          extractImages: false, // Disable images to save memory
+          enableProgressTracking: false // Disable progress tracking to save memory
+        });
+        
+        console.log('📊 Standard processing results:', standardResults.map(r => ({ 
+          fileName: r.fileName, 
+          success: r.success, 
+          error: r.error 
+        })));
+        
+        processingResults = standardResults;
+        console.log(`✅ Standard processing succeeded for ${standardResults.filter(r => r.success).length}/${files.length} files`);
+      } catch (standardError) {
+        console.error('❌ Both CPU-optimized and standard processing failed:', standardError);
+        console.error('Standard error stack:', standardError.stack);
+        throw new Error(`File processing failed: ${standardError.message}`);
+      }
     }
 
     // Check for processing errors
@@ -140,8 +214,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Use AI service to extract and organize topics
+    console.log('🤖 Starting topic extraction...');
+    console.log(`📊 Extracted contents: ${extractedContents.length} items`);
+    
     const topicService = getTopicExtractionService()
+    console.log('✅ Topic service obtained');
+    
     const organizedTopics = await topicService.extractTopics(extractedContents)
+    console.log(`✅ Topic extraction completed: ${organizedTopics.length} topics`);
 
     // Convert to frontend format
     const formattedTopics = organizedTopics.map((topic, index) => ({

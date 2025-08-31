@@ -108,36 +108,53 @@ export class CPUOptimizedProcessor {
   }
 
   /**
-   * CPU-intensive PDF processing with chunked reading
+   * CPU-intensive PDF processing
    */
   private async processPDFChunked(file: File): Promise<{
     content: string;
     metadata: any;
   }> {
-    const pdfParse = require('pdf-parse');
-    
-    // Read file in chunks to avoid loading entire file into memory
-    const buffer = await this.readFileInChunks(file);
-    
-    const options = {
-      // Disable image extraction to save memory
-      max: 0, // Process all pages
-      version: 'v1.10.100',
-      // Use minimal memory options
-      normalizeWhitespace: false,
-      disableCombineTextItems: false
-    };
-    
-    const data = await pdfParse(buffer, options);
-    
-    return {
-      content: data.text,
-      metadata: {
-        pages: data.numpages,
-        info: data.info,
-        version: data.version
+    try {
+      const pdfParse = require('pdf-parse');
+      
+      console.log(`Processing PDF file: ${file.name}, size: ${file.size} bytes`);
+      
+      // Read entire PDF file (pdf-parse needs complete file structure)
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      
+      console.log(`PDF buffer created, length: ${buffer.length} bytes`);
+      
+      const options = {
+        // Disable image extraction to save memory
+        max: 0, // Process all pages
+        version: 'v1.10.100',
+        // Use minimal memory options
+        normalizeWhitespace: false,
+        disableCombineTextItems: false
+      };
+      
+      const data = await pdfParse(buffer, options);
+      console.log(`PDF extraction completed, text length: ${data.text.length}, pages: ${data.numpages}`);
+      
+      if (!data.text || data.text.trim().length === 0) {
+        throw new Error('No text content extracted from PDF file');
       }
-    };
+      
+      return {
+        content: data.text,
+        metadata: {
+          pages: data.numpages,
+          info: data.info,
+          version: data.version,
+          originalSize: file.size,
+          bufferSize: buffer.length
+        }
+      };
+    } catch (error) {
+      console.error(`PDF processing failed for ${file.name}:`, error);
+      throw new Error(`PDF processing failed: ${error.message}`);
+    }
   }
 
   /**
@@ -147,57 +164,83 @@ export class CPUOptimizedProcessor {
     content: string;
     metadata: any;
   }> {
-    const mammoth = require('mammoth');
-    
-    // Read file as buffer
-    const buffer = await this.readFileInChunks(file);
-    
-    // Use mammoth with minimal memory options
-    const options = {
-      convertImage: mammoth.images.ignoreImages, // Ignore images to save memory
-      styleMap: [], // No style mapping to reduce processing
-      includeDefaultStyleMap: false,
-      includeEmbeddedStyleMap: false
-    };
-    
-    const result = await mammoth.extractRawText({ buffer }, options);
-    
-    return {
-      content: result.value,
-      metadata: {
-        messages: result.messages,
-        wordCount: result.value.split(/\s+/).length
+    try {
+      const mammoth = require('mammoth');
+      
+      console.log(`Processing DOCX file: ${file.name}, size: ${file.size} bytes`);
+      
+      // For DOCX files, read the entire file at once since they're usually not huge
+      // and mammoth needs the complete file structure
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      
+      console.log(`Buffer created directly, length: ${buffer.length} bytes`);
+      
+      // Use mammoth with minimal memory options
+      const options = {
+        convertImage: mammoth.images.ignoreImages, // Ignore images to save memory
+        styleMap: [], // No style mapping to reduce processing
+        includeDefaultStyleMap: false,
+        includeEmbeddedStyleMap: false
+      };
+      
+      const result = await mammoth.extractRawText({ buffer }, options);
+      console.log(`Mammoth extraction completed, text length: ${result.value.length}`);
+      
+      if (!result.value || result.value.trim().length === 0) {
+        throw new Error('No text content extracted from DOCX file');
       }
-    };
+      
+      return {
+        content: result.value,
+        metadata: {
+          messages: result.messages,
+          wordCount: result.value.split(/\s+/).length,
+          originalSize: file.size,
+          bufferSize: buffer.length
+        }
+      };
+    } catch (error) {
+      console.error(`DOCX processing failed for ${file.name}:`, error);
+      throw new Error(`DOCX processing failed: ${error.message}`);
+    }
   }
 
   /**
-   * Chunked text file processing
+   * Text file processing
    */
   private async processTextChunked(file: File): Promise<{
     content: string;
     metadata: any;
   }> {
-    let content = '';
-    let lineCount = 0;
-    let charCount = 0;
-    
-    // Process file in chunks
-    const chunks = await this.readFileInChunks(file);
-    const text = chunks.toString('utf8');
-    
-    content = text;
-    lineCount = (text.match(/\n/g) || []).length;
-    charCount = text.length;
-    
-    return {
-      content,
-      metadata: {
-        lineCount,
-        charCount,
-        wordCount: content.split(/\s+/).length
+    try {
+      console.log(`Processing text file: ${file.name}, size: ${file.size} bytes`);
+      
+      // Read text file directly
+      const text = await file.text();
+      
+      console.log(`Text extraction completed, length: ${text.length} characters`);
+      
+      if (!text || text.trim().length === 0) {
+        throw new Error('No text content found in file');
       }
-    };
+      
+      const lineCount = (text.match(/\n/g) || []).length;
+      const wordCount = text.split(/\s+/).filter(word => word.length > 0).length;
+      
+      return {
+        content: text,
+        metadata: {
+          lineCount,
+          charCount: text.length,
+          wordCount,
+          originalSize: file.size
+        }
+      };
+    } catch (error) {
+      console.error(`Text processing failed for ${file.name}:`, error);
+      throw new Error(`Text processing failed: ${error.message}`);
+    }
   }
 
   /**
@@ -207,70 +250,110 @@ export class CPUOptimizedProcessor {
     content: string;
     metadata: any;
   }> {
-    const Tesseract = require('tesseract.js');
-    
-    // Convert file to buffer for Tesseract
-    const buffer = await this.readFileInChunks(file);
-    
-    // Use Tesseract with CPU-optimized settings
-    const { data: { text, confidence } } = await Tesseract.recognize(
-      buffer,
-      'eng',
-      {
-        logger: () => {}, // Disable logging to save memory
-        // CPU-optimized settings
-        tessedit_pageseg_mode: Tesseract.PSM.AUTO,
-        tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY,
-        // Reduce memory usage
-        tessedit_do_invert: 0,
-        textord_heavy_nr: 1
-      }
-    );
-    
-    return {
-      content: text,
-      metadata: {
-        confidence,
-        ocrEngine: 'tesseract'
-      }
-    };
+    try {
+      const Tesseract = require('tesseract.js');
+      
+      console.log(`Processing image file: ${file.name}, size: ${file.size} bytes`);
+      
+      // Convert file to buffer for Tesseract
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      
+      console.log(`Image buffer created, length: ${buffer.length} bytes`);
+      
+      // Use Tesseract with CPU-optimized settings
+      const { data: { text, confidence } } = await Tesseract.recognize(
+        buffer,
+        'eng',
+        {
+          logger: () => {}, // Disable logging to save memory
+          // CPU-optimized settings
+          tessedit_pageseg_mode: Tesseract.PSM.AUTO,
+          tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY,
+          // Reduce memory usage
+          tessedit_do_invert: 0,
+          textord_heavy_nr: 1
+        }
+      );
+      
+      console.log(`OCR completed, text length: ${text.length}, confidence: ${confidence}%`);
+      
+      return {
+        content: text,
+        metadata: {
+          confidence,
+          ocrEngine: 'tesseract',
+          originalSize: file.size,
+          bufferSize: buffer.length
+        }
+      };
+    } catch (error) {
+      console.error(`Image processing failed for ${file.name}:`, error);
+      throw new Error(`Image processing failed: ${error.message}`);
+    }
   }
 
   /**
    * Read file in small chunks to minimize memory usage
    */
   private async readFileInChunks(file: File): Promise<Buffer> {
-    const chunks: Uint8Array[] = [];
-    let offset = 0;
-    
-    while (offset < file.size) {
-      const chunk = file.slice(offset, offset + this.config.chunkSize);
-      const arrayBuffer = await chunk.arrayBuffer();
-      chunks.push(new Uint8Array(arrayBuffer));
-      offset += this.config.chunkSize;
+    try {
+      console.log(`Reading file in chunks: ${file.name}, total size: ${file.size}, chunk size: ${this.config.chunkSize}`);
       
-      // Check memory usage and force GC if needed
-      if (this.getMemoryUsage() > this.config.maxMemoryUsage) {
-        this.forceGarbageCollection();
-        // Small delay to allow GC to complete
-        await new Promise(resolve => setTimeout(resolve, 10));
+      const chunks: Uint8Array[] = [];
+      let offset = 0;
+      let chunkCount = 0;
+      
+      while (offset < file.size) {
+        const chunkEnd = Math.min(offset + this.config.chunkSize, file.size);
+        const chunk = file.slice(offset, chunkEnd);
+        const arrayBuffer = await chunk.arrayBuffer();
+        chunks.push(new Uint8Array(arrayBuffer));
+        offset = chunkEnd;
+        chunkCount++;
+        
+        // Log progress every 10 chunks
+        if (chunkCount % 10 === 0) {
+          console.log(`Processed ${chunkCount} chunks, ${offset}/${file.size} bytes (${Math.round(offset/file.size*100)}%)`);
+        }
+        
+        // Check memory usage and force GC if needed
+        if (this.getMemoryUsage() > this.config.maxMemoryUsage) {
+          this.forceGarbageCollection();
+          // Small delay to allow GC to complete
+          await new Promise(resolve => setTimeout(resolve, 10));
+        }
+        
+        // Yield control to prevent blocking
+        await new Promise(resolve => setTimeout(resolve, 0));
       }
       
-      // Yield control to prevent blocking
-      await new Promise(resolve => setTimeout(resolve, 0));
+      console.log(`File reading completed: ${chunkCount} chunks processed`);
+      
+      // Combine all chunks into a single buffer
+      const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+      console.log(`Combining chunks: expected ${file.size} bytes, actual ${totalLength} bytes`);
+      
+      if (totalLength !== file.size) {
+        console.warn(`Size mismatch: expected ${file.size}, got ${totalLength}`);
+      }
+      
+      const result = new Uint8Array(totalLength);
+      let position = 0;
+      
+      for (const chunk of chunks) {
+        result.set(chunk, position);
+        position += chunk.length;
+      }
+      
+      const buffer = Buffer.from(result);
+      console.log(`Buffer creation completed: ${buffer.length} bytes`);
+      
+      return buffer;
+    } catch (error) {
+      console.error(`Error reading file in chunks:`, error);
+      throw new Error(`Failed to read file in chunks: ${error.message}`);
     }
-    
-    // Combine all chunks into a single buffer
-    const totalLength = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-    const result = new Uint8Array(totalLength);
-    let position = 0;
-    
-    for (const chunk of chunks) {
-      result.set(chunk, position);
-      position += chunk.length;
-    }
-    
-    return Buffer.from(result);
   }
 
 

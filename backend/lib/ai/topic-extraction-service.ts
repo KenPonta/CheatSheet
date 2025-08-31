@@ -58,6 +58,18 @@ export class TopicExtractionService {
   };
 
   /**
+   * Simple method to extract topics (for backward compatibility)
+   */
+  async extractTopics(content: ExtractedContent[]): Promise<OrganizedTopic[]> {
+    const analysis = await this.extractAndOrganizeTopics(content, {
+      maxTopics: 20,
+      focusAreas: [],
+      excludePatterns: []
+    });
+    return analysis.mainTopics;
+  }
+
+  /**
    * Main method to extract and organize topics from content
    */
   async extractAndOrganizeTopics(
@@ -69,16 +81,40 @@ export class TopicExtractionService {
     const finalConfig = { ...this.defaultConfig, ...config };
 
     try {
+      console.log('🔍 Topic extraction debug - content:', {
+        contentLength: content?.length,
+        contentType: typeof content,
+        firstItem: content?.[0] ? {
+          hasText: !!content[0].text,
+          textLength: content[0].text?.length,
+          hasMetadata: !!content[0].metadata,
+          hasStructure: !!content[0].structure
+        } : 'no first item'
+      });
+      
+      console.log('🔍 Topic extraction debug - userPreferences:', userPreferences);
+      
       // Step 1: Extract raw topics from content
       const extractionRequest: TopicExtractionRequest = {
         content,
         userPreferences: {
-          ...userPreferences,
-          maxTopics: userPreferences.maxTopics || finalConfig.maxTopics || 20
+          maxTopics: userPreferences.maxTopics || finalConfig.maxTopics || 20,
+          focusAreas: userPreferences.focusAreas || [],
+          excludePatterns: userPreferences.excludePatterns || []
         }
       };
 
+      console.log('🔍 Calling aiService.extractTopics with request:', {
+        contentCount: extractionRequest.content?.length,
+        maxTopics: extractionRequest.userPreferences.maxTopics
+      });
+
       const rawTopics = await this.aiService.extractTopics(extractionRequest);
+      
+      console.log('✅ Raw topics extracted:', {
+        count: rawTopics?.length,
+        firstTopic: rawTopics?.[0]?.title
+      });
       
       // Step 2: Analyze content structure for better organization
       const structureAnalysis = this.analyzeContentStructure(content);
