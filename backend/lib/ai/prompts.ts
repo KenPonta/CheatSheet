@@ -13,11 +13,11 @@ Content preview:
 ${content.text.substring(0, 500)}${content.text.length > 500 ? '...' : ''}`;
     }).join('\n\n');
 
-    const focusAreas = request.userPreferences.focusAreas.length > 0 
+    const focusAreas = request.userPreferences.focusAreas && request.userPreferences.focusAreas.length > 0 
       ? `\nFocus on these areas: ${request.userPreferences.focusAreas.join(', ')}`
       : '';
 
-    const excludePatterns = request.userPreferences.excludePatterns.length > 0
+    const excludePatterns = request.userPreferences.excludePatterns && request.userPreferences.excludePatterns.length > 0
       ? `\nExclude content matching: ${request.userPreferences.excludePatterns.join(', ')}`
       : '';
 
