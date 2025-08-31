@@ -3,7 +3,9 @@ import { pdfGenerator } from "@/backend/lib/pdf-generation"
 import { GenerationRequest, CheatSheetTopic, CheatSheetConfig } from "@/backend/lib/pdf-generation/types"
 import { getImageRecreationService } from "@/backend/lib/ai"
 import { getAIContentService } from "@/backend/lib/ai"
-import type { ExtractedImage } from "@/backend/lib/ai/types"
+import { ReferenceFormatMatcher } from "@/backend/lib/template/format-matcher"
+import { ContentDensityAnalyzer } from "@/backend/lib/template/content-density-analyzer"
+import type { ExtractedImage, ExtractedContent, OrganizedTopic } from "@/backend/lib/ai/types"
 
 interface GenerateCheatSheetRequest {
   topics: Array<{
@@ -45,6 +47,9 @@ interface GenerateCheatSheetRequest {
   outputFormat?: 'html' | 'pdf' | 'both'
   enableImageRecreation?: boolean
   enableContentValidation?: boolean
+  enableReferenceFormatMatching?: boolean
+  referenceTemplate?: File
+  userContent?: ExtractedContent[]
 }
 
 export function convertToGenerationRequest(data: GenerateCheatSheetRequest): GenerationRequest {
@@ -79,14 +84,112 @@ export function convertToGenerationRequest(data: GenerateCheatSheetRequest): Gen
 
 export async function POST(request: NextRequest) {
   try {
-    const data: GenerateCheatSheetRequest = await request.json()
+    // Handle both JSON and FormData requests for reference template support
+    let data: GenerateCheatSheetRequest;
+    let referenceFile: File | null = null;
+    
+    const contentType = request.headers.get('content-type');
+    
+    if (contentType?.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      const dataJson = formData.get('data') as string;
+      referenceFile = formData.get('referenceTemplate') as File;
+      
+      if (!dataJson) {
+        return NextResponse.json({ error: "Request data is required" }, { status: 400 });
+      }
+      
+      try {
+        data = JSON.parse(dataJson);
+      } catch (parseError) {
+        return NextResponse.json({ error: "Invalid JSON in request data" }, { status: 400 });
+      }
+    } else {
+      data = await request.json();
+    }
 
     if (!data.topics || data.topics.length === 0) {
       return NextResponse.json({ error: "No topics provided" }, { status: 400 })
     }
 
-    // Process images if image recreation is enabled
+    // Apply reference format matching if enabled
     let processedTopics = data.topics
+    let formatMatchingResults = null
+    let enhancedConfig = { ...data.config }
+    
+    if (data.enableReferenceFormatMatching && (referenceFile || data.referenceTemplate)) {
+      try {
+        const templateFile = referenceFile || data.referenceTemplate;
+        if (templateFile && data.userContent) {
+          console.log('🎨 Applying reference format matching...');
+          
+          const formatMatcher = new ReferenceFormatMatcher();
+          const densityAnalyzer = new ContentDensityAnalyzer();
+          
+          // Convert topics to OrganizedTopic format for format matching
+          const organizedTopics: OrganizedTopic[] = data.topics.map((topic, index) => ({
+            id: topic.id || `topic-${index}`,
+            title: topic.topic,
+            content: topic.customContent || topic.content,
+            subtopics: topic.subtopics?.map(sub => ({
+              id: sub.id,
+              title: sub.title,
+              content: sub.content,
+              priority: 'medium' as const,
+              estimatedSpace: sub.content.length * 1.1,
+              isSelected: true,
+              parentTopicId: topic.id || `topic-${index}`,
+              confidence: 0.8
+            })) || [],
+            sourceFiles: ['user-input'],
+            confidence: 0.9,
+            priority: (topic.priority === 1 ? 'high' : topic.priority === 2 ? 'medium' : 'low') as const,
+            examples: topic.examples || [],
+            originalWording: topic.originalWording || topic.content,
+            estimatedSpace: (topic.customContent || topic.content).length * 1.2,
+            isSelected: true
+          }));
+          
+          formatMatchingResults = await formatMatcher.matchFormat(
+            templateFile,
+            data.userContent,
+            organizedTopics,
+            {
+              preserveContentFidelity: true,
+              allowLayoutModifications: true,
+              matchContentDensity: true,
+              adaptTypography: true,
+              maintainVisualHierarchy: true
+            }
+          );
+          
+          // Apply format matching results to enhance configuration
+          if (formatMatchingResults.generatedCSS.css) {
+            enhancedConfig.customStyles = (enhancedConfig.customStyles || '') + '\n' + formatMatchingResults.generatedCSS.css;
+          }
+          
+          // Update topics based on content density matching
+          if (formatMatchingResults.adaptedContent.topicSelectionChanges.length > 0) {
+            console.log(`📊 Applied ${formatMatchingResults.adaptedContent.topicSelectionChanges.length} content density adjustments`);
+            
+            // Apply topic selection changes
+            processedTopics = data.topics.filter(topic => {
+              const change = formatMatchingResults.adaptedContent.topicSelectionChanges.find(
+                c => c.topicId === topic.id
+              );
+              return !change || change.action !== 'remove';
+            });
+          }
+          
+          console.log(`✅ Reference format matching completed with ${Math.round(formatMatchingResults.matchingScore * 100)}% match`);
+        }
+      } catch (formatError) {
+        console.warn("Reference format matching failed, proceeding without formatting:", formatError);
+        formatMatchingResults = null;
+      }
+    }
+
+    // Process images if image recreation is enabled
     let imageRecreationResults = null
     
     if (data.enableImageRecreation) {
@@ -155,7 +258,8 @@ export async function POST(request: NextRequest) {
 
     const generationRequest = convertToGenerationRequest({
       ...data,
-      topics: processedTopics
+      topics: processedTopics,
+      config: enhancedConfig
     })
     const outputFormat = data.outputFormat || 'html'
 
@@ -173,7 +277,14 @@ export async function POST(request: NextRequest) {
     const allWarnings = [
       ...(result.warnings || []),
       ...fidelityWarnings
-    ]
+    ];
+    
+    // Add format matching warnings if applicable
+    if (formatMatchingResults?.warnings) {
+      allWarnings.push(...formatMatchingResults.warnings.map(w => 
+        `Format Matching: ${w.message} (${w.severity})`
+      ));
+    }
 
     // Convert PDF buffer to base64 for JSON response if needed
     const response: any = {
@@ -192,6 +303,13 @@ export async function POST(request: NextRequest) {
       fidelityValidation: data.enableContentValidation ? {
         checked: processedTopics.filter(t => t.customContent && t.originalWording).length,
         warnings: fidelityWarnings.length
+      } : null,
+      formatMatching: formatMatchingResults ? {
+        matchingScore: formatMatchingResults.matchingScore,
+        appliedChanges: formatMatchingResults.adaptedContent.topicSelectionChanges.length,
+        cssGenerated: !!formatMatchingResults.generatedCSS.css,
+        densityMatched: formatMatchingResults.contentDensityMatch.densityRatio,
+        structuralFidelity: formatMatchingResults.layoutAdaptation.structuralFidelity
       } : null
     }
 

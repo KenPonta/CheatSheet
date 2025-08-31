@@ -192,10 +192,30 @@ export default function CheatSheetCreator() {
         formData.append("files", file)
       })
 
+      // Add space constraints if page count is configured
+      if (cheatSheetConfig.pageCount) {
+        const spaceConstraints = {
+          pageSize: cheatSheetConfig.paperSize,
+          fontSize: cheatSheetConfig.fontSize,
+          columns: cheatSheetConfig.columns,
+          availablePages: cheatSheetConfig.pageCount,
+          targetUtilization: 0.85
+        };
+        formData.append("spaceConstraints", JSON.stringify(spaceConstraints));
+      }
+
+      // Add reference analysis if reference template is provided
+      if (cheatSheetConfig.referenceImage) {
+        // For now, we'll skip reference analysis during extraction
+        // This would be enhanced in a future iteration to analyze the reference
+      }
+
       setProcessingProgress({
         stage: 'extracting',
         progress: 50,
-        message: 'Extracting topics with AI...'
+        message: cheatSheetConfig.pageCount 
+          ? 'Extracting topics with space optimization...' 
+          : 'Extracting topics with AI...'
       })
 
       const response = await fetch("/api/extract-topics", {
@@ -221,19 +241,33 @@ export default function CheatSheetCreator() {
         setWarnings(data.warnings.map(w => `${w.fileName}: ${w.suggestion}`))
       }
 
+      // Add space optimization warnings if available
+      if (data.spaceOptimization?.utilizationInfo?.suggestions) {
+        const spaceWarnings = data.spaceOptimization.utilizationInfo.suggestions.map(
+          (s: any) => `Space Optimization: ${s.description}`
+        );
+        setWarnings(prev => [...prev, ...spaceWarnings]);
+      }
+
       const initialSelectedTopics: SelectedTopic[] = data.topics.map((topic, index) => ({
         ...topic,
         id: topic.id || `topic-${index}`,
-        selected: true,
+        selected: topic.selected !== undefined ? topic.selected : true,
         originalContent: topic.content,
         isModified: false,
+        priority: topic.priority || 'medium',
+        estimatedSpace: topic.estimatedSpace || Math.ceil(topic.content.length * 1.2)
       }))
       setSelectedTopics(initialSelectedTopics)
+
+      const optimizationMessage = data.spaceOptimization 
+        ? ` with ${Math.round(data.spaceOptimization.utilizationInfo.utilizationPercentage * 100)}% space utilization`
+        : '';
 
       setProcessingProgress({
         stage: 'extracting',
         progress: 100,
-        message: `Successfully extracted ${data.topics.length} topics`
+        message: `Successfully extracted ${data.topics.length} topics${optimizationMessage}`
       })
     } catch (error) {
       console.error("Error extracting topics:", error)
@@ -256,6 +290,40 @@ export default function CheatSheetCreator() {
     )
   }
 
+  const toggleSubtopicSelection = (topicId: string, subtopicId: string, selected: boolean) => {
+    setSelectedTopics((prev) =>
+      prev.map((topic) => {
+        if (topic.id === topicId) {
+          const updatedSubtopics = topic.subtopics?.map(sub => 
+            sub.id === subtopicId ? { ...sub, isSelected: selected } : sub
+          ) || [];
+          return { ...topic, subtopics: updatedSubtopics };
+        }
+        return topic;
+      })
+    );
+  }
+
+  const updateTopicPriority = (topicId: string, priority: 'high' | 'medium' | 'low') => {
+    setSelectedTopics((prev) =>
+      prev.map((topic) => (topic.id === topicId ? { ...topic, priority } : topic))
+    );
+  }
+
+  const updateSubtopicPriority = (topicId: string, subtopicId: string, priority: 'high' | 'medium' | 'low') => {
+    setSelectedTopics((prev) =>
+      prev.map((topic) => {
+        if (topic.id === topicId) {
+          const updatedSubtopics = topic.subtopics?.map(sub => 
+            sub.id === subtopicId ? { ...sub, priority } : sub
+          ) || [];
+          return { ...topic, subtopics: updatedSubtopics };
+        }
+        return topic;
+      })
+    );
+  }
+
   const updateTopicContent = (topicId: string, newContent: string) => {
     setSelectedTopics((prev) =>
       prev.map((topic) => {
@@ -270,6 +338,11 @@ export default function CheatSheetCreator() {
         return topic
       }),
     )
+  }
+
+  const handleAutoFill = async (availableSpace: number) => {
+    // This will be handled by the enhanced topic selection component
+    console.log('Auto-fill requested with available space:', availableSpace);
   }
 
   const proceedToTopicSelection = () => {
@@ -310,37 +383,55 @@ export default function CheatSheetCreator() {
     setWarnings([])
 
     try {
+      // Prepare generation request with enhanced features
       const generationRequest: CheatSheetGenerationRequest = {
         topics: finalTopics.map((topic) => ({
           id: topic.id,
           topic: topic.topic,
           content: topic.customContent || topic.content,
           customContent: topic.customContent,
-          subtopics: topic.subtopics,
+          subtopics: topic.subtopics?.filter(sub => sub.isSelected),
           examples: topic.examples,
           originalWording: topic.originalWording,
-          priority: 1
+          priority: topic.priority === 'high' ? 1 : topic.priority === 'medium' ? 2 : 3
         })),
         config: cheatSheetConfig,
         title: 'Study Cheat Sheet',
         outputFormat: 'html',
         enableImageRecreation,
-        enableContentValidation
+        enableContentValidation,
+        enableReferenceFormatMatching: !!cheatSheetConfig.referenceImage
       }
 
       setProcessingProgress({
         stage: 'generating',
         progress: 30,
-        message: 'Generating layout and content...'
+        message: cheatSheetConfig.referenceImage 
+          ? 'Applying reference format matching...' 
+          : 'Generating layout and content...'
       })
 
-      const response = await fetch("/api/generate-cheatsheet", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(generationRequest),
-      })
+      let response: Response;
+
+      // Use FormData if reference template is provided
+      if (cheatSheetConfig.referenceImage) {
+        const formData = new FormData();
+        formData.append('data', JSON.stringify(generationRequest));
+        formData.append('referenceTemplate', cheatSheetConfig.referenceImage);
+        
+        response = await fetch("/api/generate-cheatsheet", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        response = await fetch("/api/generate-cheatsheet", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(generationRequest),
+        });
+      }
 
       if (!response.ok) {
         const errorData = await response.json()
@@ -357,6 +448,12 @@ export default function CheatSheetCreator() {
       
       if (data.warnings && data.warnings.length > 0) {
         setWarnings(data.warnings)
+      }
+
+      // Add format matching information to warnings if available
+      if (data.formatMatching) {
+        const formatInfo = `Format matching applied with ${Math.round(data.formatMatching.matchingScore * 100)}% similarity. ${data.formatMatching.appliedChanges} content adjustments made.`;
+        setWarnings(prev => [...prev, formatInfo]);
       }
 
       setProcessingProgress({
@@ -691,7 +788,26 @@ export default function CheatSheetCreator() {
                 </div>
 
                 {/* Layout Options */}
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="grid md:grid-cols-3 gap-6">
+                  <div className="space-y-3">
+                    <Label className="text-base font-semibold">Number of Pages</Label>
+                    <Select
+                      value={cheatSheetConfig.pageCount?.toString() || "1"}
+                      onValueChange={(value) => handleConfigChange("pageCount", Number.parseInt(value))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select pages" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1 Page</SelectItem>
+                        <SelectItem value="2">2 Pages</SelectItem>
+                        <SelectItem value="3">3 Pages</SelectItem>
+                        <SelectItem value="4">4 Pages</SelectItem>
+                        <SelectItem value="5">5 Pages</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
                   <div className="space-y-3">
                     <Label className="text-base font-semibold">Number of Columns</Label>
                     <Select
@@ -1032,7 +1148,11 @@ export default function CheatSheetCreator() {
             <EnhancedTopicSelection
               topics={selectedTopics}
               onTopicToggle={toggleTopicSelection}
+              onSubtopicToggle={toggleSubtopicSelection}
+              onPriorityChange={updateTopicPriority}
+              onSubtopicPriorityChange={updateSubtopicPriority}
               onTopicContentUpdate={updateTopicContent}
+              onAutoFill={handleAutoFill}
               onContinue={proceedToCustomization}
               onBack={() => setShowTopicSelection(false)}
               config={cheatSheetConfig}

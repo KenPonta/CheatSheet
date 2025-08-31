@@ -1,5 +1,6 @@
 /**
  * Reference template analyzer that extracts layout patterns and formatting styles
+ * Enhanced with computer vision-based analysis for visual elements
  */
 
 import { 
@@ -22,10 +23,16 @@ import {
 } from './types';
 import { ExtractedContent, DocumentStructure } from '../ai/types';
 import { FileProcessorFactory } from '../file-processing/factory';
+import { VisualAnalyzer, VisualAnalysisResult } from './visual-analyzer';
+import { CSSGenerator } from './css-generator';
 
 export class TemplateAnalyzer {
+  private visualAnalyzer: VisualAnalyzer;
+  private cssGenerator: CSSGenerator;
+
   constructor() {
-    // No need to initialize file processor - we'll use the factory
+    this.visualAnalyzer = new VisualAnalyzer();
+    this.cssGenerator = new CSSGenerator();
   }
 
   /**
@@ -67,14 +74,24 @@ export class TemplateAnalyzer {
 
   /**
    * Performs comprehensive analysis of the extracted content
+   * Enhanced with computer vision-based visual analysis
    */
   private async performAnalysis(content: ExtractedContent, file: File): Promise<TemplateAnalysis> {
+    // Perform computer vision-based visual analysis first
+    let visualAnalysisResult: VisualAnalysisResult | null = null;
+    try {
+      visualAnalysisResult = await this.visualAnalyzer.analyzeVisualElements(content);
+    } catch (error) {
+      console.warn('Visual analysis failed, using fallback analysis:', error);
+    }
+
+    // Use visual analysis results to enhance traditional analysis
     const [layout, typography, organization, visual, metadata] = await Promise.all([
-      this.analyzeLayout(content),
-      this.analyzeTypography(content),
+      this.analyzeLayout(content, visualAnalysisResult?.layout),
+      this.analyzeTypography(content, visualAnalysisResult?.typography),
       this.analyzeOrganization(content),
-      this.analyzeVisualPatterns(content),
-      this.analyzeMetadata(content, file)
+      this.analyzeVisualPatterns(content, visualAnalysisResult),
+      this.analyzeMetadata(content, file, visualAnalysisResult?.contentDensity)
     ]);
 
     return {
@@ -88,8 +105,14 @@ export class TemplateAnalyzer {
 
   /**
    * Analyzes layout patterns including page structure, columns, and spacing
+   * Enhanced with computer vision analysis when available
    */
-  private async analyzeLayout(content: ExtractedContent): Promise<LayoutPattern> {
+  private async analyzeLayout(content: ExtractedContent, visualLayout?: LayoutPattern): Promise<LayoutPattern> {
+    // Use visual analysis results if available, otherwise fall back to heuristics
+    if (visualLayout) {
+      return visualLayout;
+    }
+
     // Analyze document structure to infer layout
     const structure = content.structure;
     
@@ -119,8 +142,14 @@ export class TemplateAnalyzer {
 
   /**
    * Analyzes typography patterns including fonts, sizes, and styles
+   * Enhanced with computer vision analysis when available
    */
-  private async analyzeTypography(content: ExtractedContent): Promise<TypographyPattern> {
+  private async analyzeTypography(content: ExtractedContent, visualTypography?: TypographyPattern): Promise<TypographyPattern> {
+    // Use visual analysis results if available, otherwise fall back to heuristics
+    if (visualTypography) {
+      return visualTypography;
+    }
+
     // Extract font information from document structure
     const fontFamilies = this.extractFontFamilies(content);
     
@@ -171,8 +200,20 @@ export class TemplateAnalyzer {
 
   /**
    * Analyzes visual patterns including colors, borders, and emphasis
+   * Enhanced with computer vision analysis when available
    */
-  private async analyzeVisualPatterns(content: ExtractedContent): Promise<VisualPattern> {
+  private async analyzeVisualPatterns(content: ExtractedContent, visualAnalysis?: VisualAnalysisResult): Promise<VisualPattern> {
+    // Use visual analysis results if available
+    if (visualAnalysis) {
+      return {
+        colorScheme: visualAnalysis.colorScheme,
+        borders: visualAnalysis.visualElements.borders,
+        backgrounds: visualAnalysis.visualElements.backgrounds,
+        icons: this.analyzeIconPatterns(content), // Keep original for now
+        emphasis: visualAnalysis.visualElements.emphasis
+      };
+    }
+
     // Extract color scheme (limited for text-based analysis)
     const colorScheme = this.analyzeColorScheme(content);
     
@@ -199,14 +240,15 @@ export class TemplateAnalyzer {
 
   /**
    * Analyzes template metadata and quality
+   * Enhanced with content density analysis from computer vision
    */
-  private async analyzeMetadata(content: ExtractedContent, file: File): Promise<TemplateMetadata> {
+  private async analyzeMetadata(content: ExtractedContent, file: File, contentDensity?: any): Promise<TemplateMetadata> {
     const pageCount = content.metadata.pageCount || 1;
     const wordCount = content.metadata.wordCount || this.estimateWordCount(content.text);
     const topicCount = this.estimateTopicCount(content.structure);
-    const complexity = this.assessComplexity(content);
+    const complexity = this.assessComplexity(content, contentDensity);
     const domain = this.detectDomain(content);
-    const quality = this.assessQuality(content);
+    const quality = this.assessQuality(content, contentDensity);
 
     return {
       pageCount,
@@ -488,24 +530,26 @@ export class TemplateAnalyzer {
     return structure.sections.length;
   }
 
-  private assessComplexity(content: ExtractedContent): 'simple' | 'moderate' | 'complex' {
+  private assessComplexity(content: ExtractedContent, contentDensity?: any): 'simple' | 'moderate' | 'complex' {
     const factors = {
       textLength: content.text.length,
       sectionCount: content.structure.sections.length,
       headingLevels: Math.max(...content.structure.headings.map(h => h.level), 1),
       imageCount: content.images.length,
-      tableCount: content.tables.length
+      tableCount: content.tables.length,
+      wordCount: content.metadata.wordCount || this.estimateWordCount(content.text)
     };
 
     const complexityScore = 
-      (factors.textLength > 5000 ? 2 : factors.textLength > 2000 ? 1 : 0) +
-      (factors.sectionCount > 10 ? 2 : factors.sectionCount > 5 ? 1 : 0) +
+      (factors.textLength > 5000 ? 2 : factors.textLength > 1000 ? 1 : 0) +
+      (factors.sectionCount > 10 ? 2 : factors.sectionCount > 3 ? 1 : 0) +
       (factors.headingLevels > 3 ? 2 : factors.headingLevels > 2 ? 1 : 0) +
-      (factors.imageCount > 5 ? 1 : 0) +
-      (factors.tableCount > 3 ? 1 : 0);
+      (factors.imageCount > 5 ? 1 : factors.imageCount > 2 ? 0.5 : 0) +
+      (factors.tableCount > 3 ? 1 : 0) +
+      (factors.wordCount > 1000 ? 1 : factors.wordCount > 500 ? 0.5 : 0);
 
-    if (complexityScore >= 6) return 'complex';
-    if (complexityScore >= 3) return 'moderate';
+    if (complexityScore >= 5) return 'complex';
+    if (complexityScore >= 2) return 'moderate';
     return 'simple';
   }
 
@@ -529,7 +573,7 @@ export class TemplateAnalyzer {
     return 'general';
   }
 
-  private assessQuality(content: ExtractedContent): TemplateQuality {
+  private assessQuality(content: ExtractedContent, contentDensity?: any): TemplateQuality {
     const readability = this.assessReadability(content);
     const organization = this.assessOrganization(content);
     const consistency = this.assessConsistency(content);
@@ -593,7 +637,7 @@ export class TemplateAnalyzer {
     if (wordsPerPage >= optimalMin && wordsPerPage <= optimalMax) {
       return 1.0;
     } else if (wordsPerPage < optimalMin) {
-      return wordsPerPage / optimalMin;
+      return Math.max(0.1, wordsPerPage / optimalMin);
     } else {
       return Math.max(0.3, optimalMax / wordsPerPage);
     }
@@ -672,6 +716,13 @@ export class TemplateAnalyzer {
     if (word.endsWith('e')) count--;
     
     return Math.max(1, count);
+  }
+
+  /**
+   * Generates CSS template from the analyzed reference template
+   */
+  async generateCSSTemplate(template: ReferenceTemplate) {
+    return this.cssGenerator.generateCSS(template);
   }
 
   private generateTemplateId(file: File): string {

@@ -40,59 +40,101 @@ const faqData: FAQItem[] = [
   },
   {
     id: '3',
+    question: 'How do priority levels work for topic selection?',
+    answer: 'Priority levels help ensure important content is always included. High priority topics are essential and always included, medium priority topics are included when space allows, and low priority topics fill remaining space. You can set priorities for both topics and individual subtopics.',
+    category: 'topics',
+    tags: ['priority', 'topics', 'selection', 'high', 'medium', 'low']
+  },
+  {
+    id: '4',
+    question: 'What is the space utilization dashboard?',
+    answer: 'The space utilization dashboard shows how much of your available page space is being used. Green (80-95%) indicates optimal utilization, yellow warns of potential issues, and red indicates content overflow. It provides real-time feedback as you make selections.',
+    category: 'topics',
+    tags: ['space', 'utilization', 'dashboard', 'optimization', 'overflow']
+  },
+  {
+    id: '5',
+    question: 'How does the auto-fill feature work?',
+    answer: 'Auto-fill automatically selects topics based on their priorities and available space. It includes all high-priority content first, then adds medium-priority items, and fills remaining space with low-priority content to achieve 85-90% space utilization.',
+    category: 'topics',
+    tags: ['auto-fill', 'automatic', 'selection', 'priority', 'space']
+  },
+  {
+    id: '6',
+    question: 'Can I select individual subtopics within a topic?',
+    answer: 'Yes! Each topic can be broken down into subtopics with individual selection and priority controls. This gives you granular control over exactly which content to include, allowing you to select only the most relevant parts of broader topics.',
+    category: 'topics',
+    tags: ['subtopics', 'granular', 'selection', 'individual', 'control']
+  },
+  {
+    id: '7',
+    question: 'How does reference format matching work?',
+    answer: 'Upload a reference cheat sheet and our AI analyzes its visual layout, typography, spacing, and color scheme. Your content is then formatted to match the reference style while preserving original meaning. This ensures consistency across your study materials.',
+    category: 'customization',
+    tags: ['reference', 'format', 'matching', 'template', 'style', 'analysis']
+  },
+  {
+    id: '8',
+    question: 'What should I do when I get space optimization suggestions?',
+    answer: 'Space suggestions help optimize your content selection. "Add content" suggestions appear when space is under-utilized, "reduce content" suggestions help with overflow, and "expand content" suggestions recommend more detailed information when space allows.',
+    category: 'topics',
+    tags: ['suggestions', 'space', 'optimization', 'add', 'reduce', 'expand']
+  },
+  {
+    id: '9',
     question: 'How accurate is the OCR text extraction?',
     answer: 'OCR accuracy depends on image quality. High-resolution images (300+ DPI) with good contrast typically achieve 95%+ accuracy. Handwritten text and poor-quality scans may have lower accuracy and should be reviewed.',
     category: 'processing',
     tags: ['ocr', 'accuracy', 'images', 'text']
   },
   {
-    id: '4',
+    id: '10',
     question: 'Can I edit the extracted content?',
-    answer: 'Yes! In the topic selection phase, you can edit any extracted content while preserving the original meaning. Click the edit button next to any topic to modify its content.',
+    answer: 'Yes! In the topic selection phase, you can edit any extracted content while preserving the original meaning. Click the edit button next to any topic to modify its content. Changes are reflected in the space calculations.',
     category: 'topics',
     tags: ['edit', 'content', 'topics', 'modify']
   },
   {
-    id: '5',
+    id: '11',
     question: 'What should I do if content doesn\'t fit on my specified pages?',
-    answer: 'You have several options: increase the page count, reduce text size, deselect some topics, edit content to be more concise, or use a larger paper size. The system will suggest the best approach.',
+    answer: 'The space optimization system provides several solutions: use priority-based reduction to remove lower-priority content, increase page count, reduce font size, or follow specific suggestions from the overflow warnings. The system will recommend the best approach.',
     category: 'customization',
-    tags: ['overflow', 'pages', 'fit', 'content']
+    tags: ['overflow', 'pages', 'fit', 'content', 'optimization']
   },
   {
-    id: '6',
-    question: 'How do reference templates work?',
-    answer: 'Upload an existing cheat sheet as a reference, and our AI will analyze its layout, formatting, and structure to apply similar styling to your content. This helps maintain consistency across your study materials.',
-    category: 'customization',
-    tags: ['template', 'reference', 'formatting', 'style']
-  },
-  {
-    id: '7',
+    id: '12',
     question: 'Why are some images recreated by AI?',
     answer: 'AI recreation improves clarity and consistency of example problems, diagrams, and illustrations. You can choose between original and recreated versions during the approval process.',
     category: 'processing',
     tags: ['images', 'ai', 'recreation', 'quality']
   },
   {
-    id: '8',
+    id: '13',
     question: 'Is my uploaded content stored permanently?',
     answer: 'No, all uploaded files and generated content are processed temporarily and automatically deleted after your session. We don\'t store your documents or personal study materials.',
     category: 'general',
     tags: ['privacy', 'storage', 'security', 'data']
   },
   {
-    id: '9',
+    id: '14',
     question: 'What if the AI organizes topics incorrectly?',
-    answer: 'You can manually reorganize topics in the selection phase. Merge related topics, split complex ones, or create new topics as needed. The AI organization is a starting point that you can customize.',
+    answer: 'You can manually reorganize topics in the selection phase. Merge related topics, split complex ones, or create new topics as needed. The priority system and space optimization will adapt to your manual changes.',
     category: 'topics',
-    tags: ['topics', 'organization', 'ai', 'incorrect']
+    tags: ['topics', 'organization', 'ai', 'incorrect', 'manual']
   },
   {
-    id: '10',
+    id: '15',
     question: 'Can I create multiple cheat sheets from the same files?',
-    answer: 'Yes! Once files are processed, you can create different cheat sheets by selecting different topics, changing page settings, or using different reference templates without re-uploading.',
+    answer: 'Yes! Once files are processed, you can create different cheat sheets by selecting different topics, changing priorities, adjusting page settings, or using different reference templates without re-uploading.',
     category: 'general',
-    tags: ['multiple', 'reuse', 'files', 'different']
+    tags: ['multiple', 'reuse', 'files', 'different', 'priorities']
+  },
+  {
+    id: '16',
+    question: 'How do I achieve optimal space utilization?',
+    answer: 'Target 85-90% space utilization for best results. Use the auto-fill feature, monitor the space dashboard, follow optimization suggestions, and adjust priorities as needed. Don\'t sacrifice readability for space efficiency.',
+    category: 'topics',
+    tags: ['optimal', 'space', 'utilization', 'efficiency', 'dashboard']
   }
 ]
 
@@ -104,6 +146,24 @@ export function HelpSystem({ workflowStage = 'upload' }: HelpSystemProps) {
   const [tourSteps, setTourSteps] = useState<any[]>([])
   
   const { workflowStage: contextStage, setWorkflowStage, userProgress, updateProgress } = useContextualHelp()
+
+  // Map workflow stages to contextual help contexts
+  const getContextFromWorkflowStage = (stage: string) => {
+    switch (stage) {
+      case 'upload':
+        return 'topic-extraction'
+      case 'processing':
+        return 'topic-extraction'
+      case 'topics':
+        return 'priority-selection'
+      case 'customization':
+        return 'reference-analysis'
+      case 'generation':
+        return 'space-optimization'
+      default:
+        return 'topic-extraction'
+    }
+  }
 
   useEffect(() => {
     setWorkflowStage(workflowStage)
@@ -125,7 +185,7 @@ export function HelpSystem({ workflowStage = 'upload' }: HelpSystemProps) {
     { value: 'general', label: 'General' },
     { value: 'upload', label: 'File Upload' },
     { value: 'processing', label: 'Processing' },
-    { value: 'topics', label: 'Topic Selection' },
+    { value: 'topics', label: 'Priority & Space' },
     { value: 'customization', label: 'Customization' },
     { value: 'troubleshooting', label: 'Troubleshooting' }
   ]
@@ -169,8 +229,9 @@ export function HelpSystem({ workflowStage = 'upload' }: HelpSystemProps) {
             
             <TabsContent value="contextual" className="mt-4">
               <ContextualHelp 
-                workflowStage={contextStage} 
-                userProgress={userProgress}
+                isOpen={true}
+                onClose={() => {}}
+                context={getContextFromWorkflowStage(workflowStage)}
               />
             </TabsContent>
             
@@ -236,6 +297,32 @@ export function HelpSystem({ workflowStage = 'upload' }: HelpSystemProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card>
                   <CardHeader>
+                    <CardTitle className="text-base">New Feature Guides</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      Priority-Based Topic Selection
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      Space Optimization System
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      Reference Format Matching
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      Granular Subtopic Control
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      Auto-Fill Algorithm
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      Space Utilization Dashboard
+                    </Button>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
                     <CardTitle className="text-base">File Format Guides</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-2">
@@ -282,6 +369,32 @@ export function HelpSystem({ workflowStage = 'upload' }: HelpSystemProps) {
                     </Button>
                     <Button variant="ghost" size="sm" className="w-full justify-start">
                       Visual Content Recreation
+                    </Button>
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-base">Troubleshooting</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      Priority Selection Issues
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      Space Optimization Problems
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      Reference Format Troubleshooting
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      Content Overflow Solutions
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      Auto-Fill Issues
+                    </Button>
+                    <Button variant="ghost" size="sm" className="w-full justify-start">
+                      General Troubleshooting
                     </Button>
                   </CardContent>
                 </Card>

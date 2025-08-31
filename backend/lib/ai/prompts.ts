@@ -1,4 +1,4 @@
-import { ExtractedContent, TopicExtractionRequest } from './types';
+import { ExtractedContent, TopicExtractionRequest, OrganizedTopic } from './types';
 
 export class PromptTemplates {
   static createTopicExtractionPrompt(request: TopicExtractionRequest): string {
@@ -272,5 +272,163 @@ Provide scores (0-1) and recommendation:
 Recommendations: "use_original", "use_recreated", "needs_review"
 Issue types: "clarity", "accuracy", "relevance", "readability", "content_mismatch"
 Severity levels: "low", "medium", "high"`;
+  }
+
+  static createSpaceAwareTopicExtractionPrompt(request: TopicExtractionRequest): string {
+    const contentSummary = request.content.map((content, index) => {
+      return `Document ${index + 1} (${content.metadata.name}):
+- Text length: ${content.text.length} characters
+- Images: ${content.images.length}
+- Tables: ${content.tables.length}
+- Structure: ${content.structure.headings.length} headings, ${content.structure.sections.length} sections
+
+Content preview:
+${content.text.substring(0, 500)}${content.text.length > 500 ? '...' : ''}`;
+    }).join('\n\n');
+
+    const spaceInfo = request.spaceConstraints ? `
+SPACE CONSTRAINTS:
+- Available pages: ${request.spaceConstraints.availablePages}
+- Page size: ${request.spaceConstraints.pageSize}
+- Font size: ${request.spaceConstraints.fontSize}
+- Columns: ${request.spaceConstraints.columns}
+- Target utilization: ${(request.spaceConstraints.targetUtilization * 100).toFixed(0)}%
+${request.spaceConstraints.referenceContentDensity ? `- Reference content density: ${request.spaceConstraints.referenceContentDensity} chars/page` : ''}` : '';
+
+    const referenceInfo = request.referenceAnalysis ? `
+REFERENCE ANALYSIS:
+- Content density: ${request.referenceAnalysis.contentDensity} characters per page
+- Topic count: ${request.referenceAnalysis.topicCount}
+- Average topic length: ${request.referenceAnalysis.averageTopicLength}
+- Layout pattern: ${request.referenceAnalysis.layoutPattern}
+- Organization style: ${request.referenceAnalysis.organizationStyle}` : '';
+
+    const focusAreas = request.userPreferences.focusAreas && request.userPreferences.focusAreas.length > 0 
+      ? `\nFocus on these areas: ${request.userPreferences.focusAreas.join(', ')}`
+      : '';
+
+    const excludePatterns = request.userPreferences.excludePatterns && request.userPreferences.excludePatterns.length > 0
+      ? `\nExclude content matching: ${request.userPreferences.excludePatterns.join(', ')}`
+      : '';
+
+    return `You are an expert content analyzer specializing in space-optimized topic extraction for cheat sheets. Your goal is to extract topics that maximize information density while fitting within space constraints.
+
+CRITICAL REQUIREMENTS:
+1. PRESERVE ORIGINAL WORDING: Use exact phrases and terminology from source materials
+2. SPACE OPTIMIZATION: Consider available space and optimize topic selection for maximum utility
+3. GRANULAR SUBTOPICS: Create detailed subtopics that can be individually selected
+4. PRIORITY ASSIGNMENT: Assign priorities (high/medium/low) based on educational importance
+5. NO EXTERNAL CONTENT: Only extract information present in the provided documents
+
+Documents to analyze:
+${contentSummary}
+
+${spaceInfo}
+
+${referenceInfo}
+
+User preferences:
+- Maximum topics: ${request.userPreferences.maxTopics}${focusAreas}${excludePatterns}
+
+SPACE-AWARE EXTRACTION GUIDELINES:
+- Prioritize high-value, concise content that fits space constraints
+- Create granular subtopics for flexible selection
+- Consider reference patterns if provided
+- Assign realistic priorities based on educational importance
+- Estimate content length for space planning
+
+Please analyze the content and extract topics following this JSON structure:
+{
+  "topics": [
+    {
+      "id": "unique_topic_id",
+      "title": "Main Topic Title (using original wording)",
+      "content": "Key content for this topic (preserve original wording)",
+      "originalWording": "Exact text from source that defines this topic",
+      "confidence": 0.95,
+      "priority": "high",
+      "sourceFiles": ["document_name_1", "document_name_2"],
+      "subtopics": [
+        {
+          "id": "unique_subtopic_id",
+          "title": "Subtopic Title (original wording)",
+          "content": "Subtopic content (preserve original phrases)",
+          "confidence": 0.90,
+          "priority": "medium",
+          "sourceLocation": {
+            "fileId": "document_name",
+            "section": "section_name_if_available"
+          }
+        }
+      ]
+    }
+  ],
+  "spaceAnalysis": {
+    "estimatedTotalLength": 2500,
+    "topicDistribution": "balanced",
+    "priorityBreakdown": {
+      "high": 3,
+      "medium": 5,
+      "low": 2
+    }
+  }
+}
+
+Priority assignment guidelines:
+- HIGH: Core concepts, definitions, formulas, essential principles
+- MEDIUM: Important examples, methods, applications, explanations
+- LOW: Additional details, tips, optional information, background context
+
+Focus on creating a balanced mix that maximizes educational value within space constraints.`;
+  }
+
+  static createGranularSubtopicExtractionPrompt(topic: OrganizedTopic): string {
+    return `You are tasked with breaking down a topic into granular, individually selectable subtopics for a cheat sheet. Each subtopic should be self-contained and valuable on its own.
+
+TOPIC TO ANALYZE:
+Title: ${topic.title}
+Content: ${topic.content}
+Original Wording: ${topic.originalWording}
+
+REQUIREMENTS:
+1. Create granular subtopics that can be individually selected
+2. Preserve original wording and terminology
+3. Ensure each subtopic is self-contained and valuable
+4. Assign appropriate priorities based on educational importance
+5. Estimate space requirements for each subtopic
+
+Please break down this topic into granular subtopics following this JSON structure:
+{
+  "subtopics": [
+    {
+      "id": "granular_subtopic_id",
+      "title": "Specific Subtopic Title",
+      "content": "Self-contained content for this subtopic",
+      "confidence": 0.90,
+      "priority": "high",
+      "estimatedLength": 150,
+      "sourceLocation": {
+        "fileId": "source_document",
+        "section": "relevant_section"
+      }
+    }
+  ],
+  "extractionSummary": {
+    "totalSubtopics": 4,
+    "averageLength": 125,
+    "priorityDistribution": {
+      "high": 1,
+      "medium": 2,
+      "low": 1
+    }
+  }
+}
+
+Guidelines for granular extraction:
+- Each subtopic should cover a single concept or idea
+- Subtopics should be independently valuable
+- Maintain logical flow and relationships
+- Preserve technical accuracy and original terminology
+- Consider space efficiency in content selection`;
   }
 }

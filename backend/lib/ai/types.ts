@@ -57,17 +57,31 @@ export interface TopicExtractionRequest {
     focusAreas: string[];
     excludePatterns: string[];
   };
+  spaceConstraints?: SpaceConstraints;
+  referenceAnalysis?: ReferenceFormatAnalysis;
+}
+
+export interface SpaceConstraints {
+  availablePages: number;
+  referenceContentDensity?: number;
+  targetUtilization: number; // 0.8-0.95 for optimal space usage
+  pageSize: 'a4' | 'letter' | 'legal' | 'a3';
+  fontSize: 'small' | 'medium' | 'large';
+  columns: 1 | 2 | 3;
 }
 
 export interface OrganizedTopic {
   id: string;
   title: string;
   content: string;
-  subtopics: SubTopic[];
+  subtopics: EnhancedSubTopic[];
   sourceFiles: string[];
   confidence: number;
   examples: ExtractedImage[];
   originalWording: string;
+  priority?: 'high' | 'medium' | 'low';
+  estimatedSpace?: number;
+  isSelected?: boolean;
 }
 
 export interface SubTopic {
@@ -76,6 +90,13 @@ export interface SubTopic {
   content: string;
   confidence: number;
   sourceLocation: SourceLocation;
+}
+
+export interface EnhancedSubTopic extends SubTopic {
+  priority?: 'high' | 'medium' | 'low';
+  estimatedSpace?: number;
+  isSelected?: boolean;
+  parentTopicId?: string;
 }
 
 export interface SourceLocation {
@@ -178,6 +199,89 @@ export interface UserApprovalWorkflow {
   userChoice?: 'original' | 'recreated' | 'regenerate' | 'skip';
   feedback?: string;
   timestamp: Date;
+}
+
+// Space-aware topic extraction types
+export interface ReferenceFormatAnalysis {
+  contentDensity: number; // characters per page
+  topicCount: number;
+  averageTopicLength: number;
+  layoutPattern: 'single-column' | 'multi-column' | 'mixed';
+  visualElements: ReferenceVisualElements;
+  organizationStyle: 'hierarchical' | 'flat' | 'mixed';
+}
+
+export interface ReferenceVisualElements {
+  headerStyles: HeaderStyle[];
+  bulletStyles: BulletStyle[];
+  spacingPatterns: SpacingPattern[];
+  colorScheme: ColorScheme;
+  fontHierarchy: FontHierarchy[];
+}
+
+export interface HeaderStyle {
+  level: number;
+  fontSize: string;
+  fontWeight: string;
+  color: string;
+  spacing: string;
+}
+
+export interface BulletStyle {
+  type: 'bullet' | 'number' | 'dash' | 'custom';
+  symbol: string;
+  indentation: number;
+}
+
+export interface SpacingPattern {
+  type: 'paragraph' | 'section' | 'topic' | 'subtopic';
+  before: number;
+  after: number;
+}
+
+export interface ColorScheme {
+  primary: string;
+  secondary: string;
+  accent: string;
+  text: string;
+  background: string;
+}
+
+export interface FontHierarchy {
+  level: number;
+  fontSize: number;
+  fontWeight: string;
+  usage: string;
+}
+
+export interface SpaceOptimizationResult {
+  recommendedTopics: string[];
+  recommendedSubtopics: { topicId: string; subtopicIds: string[] }[];
+  utilizationScore: number;
+  suggestions: SpaceSuggestion[];
+  estimatedFinalUtilization: number;
+}
+
+export interface SpaceSuggestion {
+  type: 'add_topic' | 'add_subtopic' | 'expand_content' | 'reduce_content';
+  targetId: string;
+  description: string;
+  spaceImpact: number;
+}
+
+export interface TopicSelection {
+  topicId: string;
+  subtopicIds: string[];
+  priority: 'high' | 'medium' | 'low';
+  estimatedSpace: number;
+}
+
+export interface SpaceUtilizationInfo {
+  totalAvailableSpace: number;
+  usedSpace: number;
+  remainingSpace: number;
+  utilizationPercentage: number;
+  suggestions: SpaceSuggestion[];
 }
 
 export class AIServiceError extends Error {

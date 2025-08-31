@@ -11,6 +11,10 @@ export { TemplateApplicator } from './applicator';
 export { ConflictResolver } from './conflict-resolver';
 export { TemplatePreviewGenerator } from './preview';
 
+// Enhanced analysis components
+export { VisualAnalyzer } from './visual-analyzer';
+export { CSSGenerator } from './css-generator';
+
 // Types
 export type {
   ReferenceTemplate,
@@ -30,6 +34,22 @@ export type {
   TemplateQuality,
   TemplateProcessingError
 } from './types';
+
+// Enhanced analysis types
+export type {
+  VisualAnalysisResult,
+  VisualElementAnalysis,
+  HeaderVisualAnalysis,
+  BulletVisualAnalysis,
+  ContentDensityAnalysis
+} from './visual-analyzer';
+
+export type {
+  GeneratedCSS,
+  CSSVariables,
+  CSSClasses,
+  MediaQuery
+} from './css-generator';
 
 export type {
   ConflictResolutionOptions,

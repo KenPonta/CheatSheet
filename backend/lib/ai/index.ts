@@ -2,6 +2,8 @@
 export { AIContentService, getAIContentService } from './content-service';
 export { OpenAIClient, getOpenAIClient } from './client';
 export { PromptTemplates } from './prompts';
+export { SpaceCalculationService, getSpaceCalculationService } from './space-calculation-service';
+export { ContentUtilizationService, getContentUtilizationService } from './content-utilization-service';
 export { 
   TopicExtractionService, 
   getTopicExtractionService,
@@ -28,5 +30,12 @@ export type {
   GeneratedImage,
   ImageQualityAssessment,
   ImageRecreationResult,
-  UserApprovalWorkflow
+  UserApprovalWorkflow,
+  SpaceConstraints,
+  ReferenceFormatAnalysis,
+  SpaceOptimizationResult,
+  SpaceSuggestion,
+  TopicSelection,
+  SpaceUtilizationInfo,
+  EnhancedSubTopic
 } from './types';
