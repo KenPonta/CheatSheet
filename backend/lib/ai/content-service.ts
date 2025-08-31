@@ -1,16 +1,22 @@
 import { getOpenAIClient } from './client';
 import { PromptTemplates } from './prompts';
+import { getSpaceCalculationService } from './space-calculation-service';
 import {
   ExtractedContent,
   TopicExtractionRequest,
   OrganizedTopic,
   FidelityScore,
   AIServiceError,
-  ExtractedImage
+  ExtractedImage,
+  SpaceConstraints,
+  ReferenceFormatAnalysis,
+  SpaceOptimizationResult,
+  EnhancedSubTopic
 } from './types';
 
 export class AIContentService {
   private client = getOpenAIClient();
+  private spaceCalculationService = getSpaceCalculationService();
 
   /**
    * Extract topics from content while preserving original wording
@@ -226,6 +232,249 @@ export class AIContentService {
       recreatedImage: result.generatedImage,
       shouldUseRecreated: !result.fallbackToOriginal && result.generatedImage !== undefined,
       qualityScore: result.qualityAssessment.recreatedScore || result.qualityAssessment.originalScore
+    }));
+  }
+
+  /**
+   * Extract topics with space constraints and reference analysis
+   */
+  async extractTopicsWithSpaceConstraints(
+    content: ExtractedContent[],
+    constraints: SpaceConstraints,
+    referenceAnalysis?: ReferenceFormatAnalysis
+  ): Promise<OrganizedTopic[]> {
+    try {
+      // Calculate available space
+      const availableSpace = this.spaceCalculationService.calculateAvailableSpace(constraints);
+      
+      // Calculate optimal topic count based on space and reference
+      const optimalTopicCount = this.spaceCalculationService.calculateOptimalTopicCount(
+        availableSpace,
+        [], // We don't have topics yet, so use reference analysis
+        referenceAnalysis
+      );
+
+      // Create enhanced extraction request
+      const enhancedRequest: TopicExtractionRequest = {
+        content,
+        userPreferences: {
+          maxTopics: optimalTopicCount,
+          focusAreas: [],
+          excludePatterns: []
+        },
+        spaceConstraints: constraints,
+        referenceAnalysis
+      };
+
+      const prompt = PromptTemplates.createSpaceAwareTopicExtractionPrompt(enhancedRequest);
+      
+      const response = await this.client.createChatCompletion([
+        {
+          role: 'system',
+          content: 'You are an expert educational content analyzer specializing in space-optimized topic extraction. Always respond with valid JSON and consider space constraints in your analysis.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ], {
+        temperature: 0.1,
+        maxTokens: 6000, // Increased for more detailed analysis
+        responseFormat: { type: 'json_object' }
+      });
+
+      const parsed = JSON.parse(response);
+      
+      if (!parsed.topics || !Array.isArray(parsed.topics)) {
+        throw new AIServiceError('Invalid response format: missing topics array', {
+          code: 'INVALID_RESPONSE',
+          retryable: false
+        });
+      }
+
+      // Validate and enhance topics with space calculations
+      const topics = this.validateAndCleanTopics(parsed.topics, content);
+      return this.enhanceTopicsWithSpaceCalculations(topics, constraints);
+    } catch (error) {
+      if (error instanceof AIServiceError) {
+        throw error;
+      }
+      throw new AIServiceError(`Space-aware topic extraction failed: ${error.message}`, {
+        code: 'API_ERROR',
+        retryable: true,
+        details: error
+      });
+    }
+  }
+
+  /**
+   * Optimize space utilization for selected topics
+   */
+  async optimizeSpaceUtilization(
+    topics: OrganizedTopic[],
+    availableSpace: number,
+    referencePattern?: ReferenceFormatAnalysis
+  ): Promise<SpaceOptimizationResult> {
+    try {
+      return this.spaceCalculationService.optimizeSpaceUtilization(
+        topics,
+        availableSpace,
+        referencePattern
+      );
+    } catch (error) {
+      throw new AIServiceError(`Space optimization failed: ${error.message}`, {
+        code: 'API_ERROR',
+        retryable: true,
+        details: error
+      });
+    }
+  }
+
+  /**
+   * Extract granular subtopics for individual selection
+   */
+  async extractGranularSubtopics(topic: OrganizedTopic): Promise<EnhancedSubTopic[]> {
+    try {
+      const prompt = PromptTemplates.createGranularSubtopicExtractionPrompt(topic);
+      
+      const response = await this.client.createChatCompletion([
+        {
+          role: 'system',
+          content: 'You are an expert at breaking down educational topics into granular, selectable subtopics while preserving original content.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ], {
+        temperature: 0.1,
+        maxTokens: 3000,
+        responseFormat: { type: 'json_object' }
+      });
+
+      const parsed = JSON.parse(response);
+      
+      if (!parsed.subtopics || !Array.isArray(parsed.subtopics)) {
+        throw new AIServiceError('Invalid response format: missing subtopics array', {
+          code: 'INVALID_RESPONSE',
+          retryable: false
+        });
+      }
+
+      return this.validateAndCleanEnhancedSubtopics(parsed.subtopics, topic.id);
+    } catch (error) {
+      if (error instanceof AIServiceError) {
+        throw error;
+      }
+      throw new AIServiceError(`Granular subtopic extraction failed: ${error.message}`, {
+        code: 'API_ERROR',
+        retryable: true,
+        details: error
+      });
+    }
+  }
+
+  /**
+   * Enhance topics with space calculations
+   */
+  private enhanceTopicsWithSpaceCalculations(
+    topics: OrganizedTopic[],
+    constraints: SpaceConstraints
+  ): OrganizedTopic[] {
+    return topics.map(topic => {
+      const estimatedSpace = this.spaceCalculationService.estimateTopicSpace(topic, constraints);
+      
+      // Enhance subtopics with space calculations
+      const enhancedSubtopics: EnhancedSubTopic[] = topic.subtopics.map(subtopic => ({
+        ...subtopic,
+        estimatedSpace: this.spaceCalculationService.estimateSubtopicSpace(subtopic as EnhancedSubTopic, constraints),
+        parentTopicId: topic.id,
+        priority: this.inferSubtopicPriority(subtopic, topic),
+        isSelected: false
+      }));
+
+      return {
+        ...topic,
+        estimatedSpace,
+        priority: this.inferTopicPriority(topic),
+        isSelected: false,
+        subtopics: enhancedSubtopics
+      };
+    });
+  }
+
+  /**
+   * Infer topic priority based on content characteristics
+   */
+  private inferTopicPriority(topic: OrganizedTopic): 'high' | 'medium' | 'low' {
+    // High priority indicators
+    const highPriorityKeywords = ['definition', 'formula', 'theorem', 'principle', 'law', 'rule'];
+    const mediumPriorityKeywords = ['example', 'application', 'method', 'process', 'step'];
+    const lowPriorityKeywords = ['note', 'tip', 'additional', 'optional', 'extra'];
+
+    const content = (topic.title + ' ' + topic.content).toLowerCase();
+    
+    if (highPriorityKeywords.some(keyword => content.includes(keyword))) {
+      return 'high';
+    }
+    
+    if (lowPriorityKeywords.some(keyword => content.includes(keyword))) {
+      return 'low';
+    }
+    
+    // Consider confidence score
+    if (topic.confidence > 0.8) {
+      return 'high';
+    } else if (topic.confidence > 0.6) {
+      return 'medium';
+    }
+    
+    return 'medium'; // Default to medium priority
+  }
+
+  /**
+   * Infer subtopic priority based on content and parent topic
+   */
+  private inferSubtopicPriority(subtopic: any, parentTopic: OrganizedTopic): 'high' | 'medium' | 'low' {
+    // Inherit from parent if parent is high priority
+    const parentPriority = this.inferTopicPriority(parentTopic);
+    if (parentPriority === 'high') {
+      return 'high';
+    }
+
+    // Check subtopic-specific indicators
+    const content = (subtopic.title + ' ' + subtopic.content).toLowerCase();
+    const coreKeywords = ['key', 'important', 'critical', 'essential', 'main'];
+    const detailKeywords = ['detail', 'note', 'aside', 'additional'];
+
+    if (coreKeywords.some(keyword => content.includes(keyword))) {
+      return 'high';
+    }
+    
+    if (detailKeywords.some(keyword => content.includes(keyword))) {
+      return 'low';
+    }
+
+    return 'medium';
+  }
+
+  /**
+   * Validate and clean enhanced subtopics
+   */
+  private validateAndCleanEnhancedSubtopics(subtopics: any[], parentTopicId: string): EnhancedSubTopic[] {
+    return subtopics.map((subtopic, index) => ({
+      id: subtopic.id || `${parentTopicId}_sub_${index}`,
+      title: this.sanitizeText(subtopic.title || 'Untitled Subtopic'),
+      content: this.sanitizeText(subtopic.content || ''),
+      confidence: Math.max(0, Math.min(1, subtopic.confidence || 0.5)),
+      sourceLocation: subtopic.sourceLocation || {
+        fileId: 'unknown',
+        section: 'unknown'
+      },
+      priority: subtopic.priority || 'medium',
+      estimatedSpace: subtopic.estimatedSpace || 0,
+      isSelected: false,
+      parentTopicId
     }));
   }
 

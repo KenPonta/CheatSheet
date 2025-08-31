@@ -43,21 +43,22 @@
   - Write unit tests with mocked AI responses
   - _Requirements: 4.1, 4.3, 9.1, 9.3_
 
-- [x] 7. Implement intelligent topic extraction and organization
-  - Create topic extraction service that analyzes content structure and identifies main themes
-  - Implement hierarchical topic organization with main topics and subtopics
-  - Add duplicate detection and merging for overlapping content from multiple sources
-  - Create confidence scoring system for topic relevance
-  - Write integration tests for topic extraction workflow
-  - _Requirements: 4.1, 4.2, 4.4_
+- [x] 7. Implement space-aware topic extraction and organization
+  - Enhance topic extraction service to consider available page space and reference content density
+  - Implement intelligent topic count calculation based on space constraints and reference patterns
+  - Add granular subtopic extraction that allows individual subtopic selection
+  - Create space estimation algorithms for topics and subtopics
+  - Write integration tests for space-aware topic extraction
+  - _Requirements: 4.1, 4.2, 4.5, 4.6_
 
-- [x] 8. Build enhanced topic selection interface
-  - Extend existing topic selection UI with preview capabilities and content editing
-  - Add real-time page count estimation based on selected topics
-  - Implement topic content editing with original text preservation warnings
-  - Create topic filtering and search functionality for large document sets
-  - Write component tests for topic selection interactions
-  - _Requirements: 5.1, 5.2, 5.3, 5.4_
+- [x] 8. Build priority-based topic selection interface with space optimization
+  - Implement priority controls (high, medium, low) for topics and individual subtopics
+  - Add space utilization dashboard showing current usage and suggestions
+  - Create auto-fill functionality that optimally selects content based on priorities and available space
+  - Implement real-time space estimation and overflow warnings
+  - Add suggestions for including additional content when space is available
+  - Write component tests for priority-based selection and space optimization
+  - _Requirements: 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 11.1, 11.2, 11.3, 11.4_
 
 - [x] 9. Implement AI-powered visual content recreation
   - Integrate image generation API for recreating example questions and diagrams
@@ -75,13 +76,13 @@
   - Write tests for layout calculations and content fitting
   - _Requirements: 7.1, 7.2, 7.3, 2.2, 2.3_
 
-- [x] 11. Build reference template processing system
-  - Create reference cheat sheet analyzer that extracts layout patterns and formatting styles
-  - Implement template application system that adapts user content to reference formatting
-  - Add conflict resolution when reference formatting doesn't fit user content
-  - Create template preview and comparison functionality
-  - Write tests for template analysis and application
-  - _Requirements: 8.1, 8.2, 8.3, 8.4_
+- [x] 11. Build enhanced reference format analysis system
+  - Create comprehensive reference cheat sheet analyzer that extracts visual layout, typography, spacing, and color schemes
+  - Implement computer vision-based analysis to identify content density patterns and organization styles
+  - Add visual element extraction for headers, bullets, spacing patterns, and font hierarchies
+  - Create format template generator that produces CSS and layout rules from reference analysis
+  - Write tests for reference format analysis with sample cheat sheets from Reference folder
+  - _Requirements: 8.1, 8.2, 8.4_
 
 - [x] 12. Implement content overflow warning and management system
   - Create content measurement system that calculates space requirements for different layouts
@@ -147,10 +148,42 @@
   - Add health checks and service monitoring
   - _Requirements: System reliability and monitoring_
 
-- [x] 20. Create user documentation and help system
-  - Write user guides for each file format and processing workflow
-  - Create troubleshooting documentation for common issues
-  - Add in-app help tooltips and guided tours
-  - Implement contextual help based on current user workflow stage
-  - Write API documentation for future extensibility
+- [x] 20. Implement space calculation and optimization engine
+  - Create space calculation algorithms that accurately estimate content space requirements
+  - Implement optimal topic count calculation based on available space and reference patterns
+  - Add auto-fill algorithm that prioritizes high-priority content and fills remaining space intelligently
+  - Create space suggestion system that recommends specific subtopics when space is available
+  - Write tests for space calculations with various configurations and content types
+  - _Requirements: 10.3, 10.4, 11.3, 11.4, 11.5_
+
+- [x] 21. Build reference format matching system
+  - Implement reference format application that adapts user content to match reference styles
+  - Create CSS generation system that produces styles matching reference visual elements
+  - Add content density matching that adjusts topic selection to match reference patterns
+  - Implement layout adaptation system that maintains reference structure while fitting user content
+  - Write tests for format matching with reference files from Reference folder
+  - _Requirements: 8.3, 8.4, 8.5_
+
+- [x] 22. Create intelligent content utilization system
+  - Implement algorithms that detect when pages would be partially empty and suggest additional content
+  - Add content expansion suggestions for topics when space allows
+  - Create priority-based content reduction system for overflow scenarios
+  - Implement reference-guided content density optimization
+  - Write tests for content utilization optimization scenarios
+  - _Requirements: 10.3, 10.5, 11.4, 11.5_
+
+- [x] 23. Enhance existing components with new functionality
+  - Update topic extraction API to use space-aware algorithms
+  - Modify cheat sheet generation to apply reference format matching
+  - Integrate priority-based selection into existing topic selection component
+  - Add space utilization feedback to existing user interface
+  - Write integration tests for enhanced functionality
+  - _Requirements: All enhanced requirements integration_
+
+- [x] 24. Create user documentation and help system
+  - Write user guides for priority-based topic selection and space optimization
+  - Create troubleshooting documentation for reference format matching
+  - Add in-app help tooltips for new priority and space utilization features
+  - Implement contextual help for reference format analysis workflow
+  - Write API documentation for new space optimization and reference analysis features
   - _Requirements: User experience and support_

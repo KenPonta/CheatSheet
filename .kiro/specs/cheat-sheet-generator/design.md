@@ -40,12 +40,14 @@ graph TB
 - Tailwind CSS for styling
 - Radix UI components for consistent UX
 - React Hook Form for form management
+- Canvas API for reference format analysis
 
 **Backend:**
 - Next.js API Routes for serverless functions
 - GPT-5 integration for AI processing
 - File processing libraries (pdf-parse, mammoth, etc.)
 - OCR service integration (Tesseract.js or cloud OCR)
+- Computer vision libraries for reference analysis
 
 **File Processing:**
 - `pdf-parse` for PDF text extraction
@@ -53,13 +55,61 @@ graph TB
 - `xlsx` for Excel file handling
 - `node-html-parser` for PowerPoint XML parsing
 - `sharp` for image processing and optimization
+- `pdf2pic` for reference PDF visual analysis
 
 **AI Integration:**
 - OpenAI GPT-5 API for content analysis and organization
-- Custom prompts for topic extraction and content preservation
+- Custom prompts for space-aware topic extraction
+- Reference format analysis prompts
 - Agent-to-agent communication protocol for content validation
 
+**Reference Analysis:**
+- Computer vision for layout pattern recognition
+- CSS extraction from visual analysis
+- Content density calculation algorithms
+- Format template generation system
+
 ## Components and Interfaces
+
+### Space Utilization Management
+
+The system implements intelligent space management to address over-extraction and under-utilization issues:
+
+#### Priority-Based Content Selection
+- **High Priority**: Essential topics that must be included
+- **Medium Priority**: Important topics included if space allows
+- **Low Priority**: Optional topics used to fill remaining space
+
+#### Space Calculation Engine
+```typescript
+interface SpaceCalculationEngine {
+  calculateAvailableSpace(config: CheatSheetConfig): number
+  estimateContentSpace(content: string, config: CheatSheetConfig): number
+  calculateOptimalTopicCount(
+    availableSpace: number, 
+    topics: OrganizedTopic[],
+    referencePattern?: ReferenceFormatAnalysis
+  ): number
+  generateSpaceSuggestions(
+    currentSelection: TopicSelection[],
+    availableSpace: number
+  ): SpaceSuggestion[]
+}
+
+interface TopicSelection {
+  topicId: string
+  subtopicIds: string[]
+  priority: 'high' | 'medium' | 'low'
+  estimatedSpace: number
+}
+```
+
+#### Auto-Fill Algorithm
+1. Include all high-priority topics and subtopics
+2. Add medium-priority items until 80% space utilization
+3. Fill remaining space with low-priority items
+4. Suggest specific subtopics if space remains
+5. Warn if high-priority items exceed space limits
 
 ### Core Components
 
@@ -105,7 +155,7 @@ interface DocumentStructure {
 }
 ```
 
-#### 3. AI Topic Organization
+#### 3. Enhanced AI Topic Organization
 ```typescript
 interface TopicExtractionRequest {
   content: ExtractedContent[]
@@ -114,27 +164,84 @@ interface TopicExtractionRequest {
     focusAreas: string[]
     excludePatterns: string[]
   }
+  spaceConstraints: {
+    availablePages: number
+    referenceContentDensity?: number
+    targetUtilization: number // 0.8-0.95 for optimal space usage
+  }
+  referenceAnalysis?: ReferenceFormatAnalysis
 }
 
 interface OrganizedTopic {
   id: string
   title: string
   content: string
-  subtopics: SubTopic[]
+  subtopics: EnhancedSubTopic[]
   sourceFiles: string[]
   confidence: number
+  priority: 'high' | 'medium' | 'low'
   examples: ExtractedImage[]
   originalWording: string
+  estimatedSpace: number
+  isSelected: boolean
+}
+
+interface EnhancedSubTopic {
+  id: string
+  title: string
+  content: string
+  priority: 'high' | 'medium' | 'low'
+  estimatedSpace: number
+  isSelected: boolean
+  sourceLocation: SourceLocation
+  parentTopicId: string
+}
+
+interface ReferenceFormatAnalysis {
+  contentDensity: number // characters per page
+  topicCount: number
+  averageTopicLength: number
+  layoutPattern: 'single-column' | 'multi-column' | 'mixed'
+  visualElements: ReferenceVisualElements
+  organizationStyle: 'hierarchical' | 'flat' | 'mixed'
+}
+
+interface ReferenceVisualElements {
+  headerStyles: HeaderStyle[]
+  bulletStyles: BulletStyle[]
+  spacingPatterns: SpacingPattern[]
+  colorScheme: ColorScheme
+  fontHierarchy: FontHierarchy[]
 }
 ```
 
-#### 4. User Selection Interface
+#### 4. Enhanced Topic Selection Interface
 ```typescript
 interface TopicSelectionProps {
   topics: OrganizedTopic[]
   onTopicToggle: (topicId: string, selected: boolean) => void
+  onSubtopicToggle: (topicId: string, subtopicId: string, selected: boolean) => void
+  onPriorityChange: (topicId: string, priority: 'high' | 'medium' | 'low') => void
+  onSubtopicPriorityChange: (topicId: string, subtopicId: string, priority: 'high' | 'medium' | 'low') => void
   onContentEdit: (topicId: string, newContent: string) => void
+  onAutoFill: (availableSpace: number) => void
   onPreview: (selectedTopics: string[]) => void
+  spaceUtilization: SpaceUtilizationInfo
+}
+
+interface SpaceUtilizationInfo {
+  totalAvailableSpace: number
+  usedSpace: number
+  remainingSpace: number
+  utilizationPercentage: number
+  suggestions: SpaceSuggestion[]
+}
+
+interface SpaceSuggestion {
+  type: 'add_topic' | 'add_subtopic' | 'expand_content' | 'reduce_content'
+  targetId: string
+  description: string
+  spaceImpact: number
 }
 ```
 
@@ -178,16 +285,59 @@ interface FileProcessor {
   extractText(file: File): Promise<string>
   extractImages(file: File): Promise<ExtractedImage[]>
   performOCR(image: Buffer): Promise<string>
+  analyzeReferenceFormat(file: File): Promise<ReferenceFormatAnalysis>
 }
 ```
 
-#### AI Content Service
+#### Enhanced AI Content Service
 ```typescript
 interface AIContentService {
   extractTopics(content: ExtractedContent[]): Promise<OrganizedTopic[]>
+  extractTopicsWithSpaceConstraints(
+    content: ExtractedContent[], 
+    constraints: SpaceConstraints,
+    referenceAnalysis?: ReferenceFormatAnalysis
+  ): Promise<OrganizedTopic[]>
   organizeContent(topics: RawTopic[]): Promise<OrganizedTopic[]>
+  optimizeSpaceUtilization(
+    topics: OrganizedTopic[], 
+    availableSpace: number,
+    referencePattern?: ReferenceFormatAnalysis
+  ): Promise<SpaceOptimizationResult>
   recreateExamples(examples: ExtractedImage[]): Promise<GeneratedImage[]>
   validateContentFidelity(original: string, processed: string): Promise<FidelityScore>
+}
+
+interface SpaceOptimizationResult {
+  recommendedTopics: string[]
+  recommendedSubtopics: { topicId: string; subtopicIds: string[] }[]
+  utilizationScore: number
+  suggestions: SpaceSuggestion[]
+  estimatedFinalUtilization: number
+}
+```
+
+#### Reference Analysis Service
+```typescript
+interface ReferenceAnalysisService {
+  analyzeReferenceFormat(file: File): Promise<ReferenceFormatAnalysis>
+  extractVisualElements(content: ExtractedContent): Promise<ReferenceVisualElements>
+  calculateContentDensity(content: ExtractedContent): Promise<number>
+  identifyOrganizationPatterns(content: ExtractedContent): Promise<OrganizationPattern[]>
+  generateFormatTemplate(analysis: ReferenceFormatAnalysis): Promise<FormatTemplate>
+}
+
+interface OrganizationPattern {
+  type: 'topic_hierarchy' | 'content_grouping' | 'visual_separation'
+  pattern: string
+  frequency: number
+  examples: string[]
+}
+
+interface FormatTemplate {
+  css: string
+  layoutRules: LayoutRule[]
+  contentGuidelines: ContentGuideline[]
 }
 ```
 

@@ -42,25 +42,29 @@ This feature enables users to create customized cheat sheets from multiple file 
 
 ### Requirement 4
 
-**User Story:** As a user, I want content organized by topics and subtopics so that my cheat sheet has logical structure and flow.
+**User Story:** As a user, I want content organized by topics and subtopics with intelligent space utilization so that my cheat sheet maximizes information density without over-extraction.
 
 #### Acceptance Criteria
 
-1. WHEN content is extracted THEN the system SHALL use AI to identify and categorize topics automatically
-2. WHEN topics are identified THEN the system SHALL create a hierarchical structure with main topics and subtopics
-3. WHEN organizing content THEN the system SHALL maintain the original context and meaning from source materials
-4. WHEN content has overlapping topics THEN the system SHALL merge related information intelligently
+1. WHEN content is extracted THEN the system SHALL use AI to identify and categorize topics with consideration for available page space
+2. WHEN topics are identified THEN the system SHALL create a hierarchical structure with main topics and granular subtopics that can be individually selected
+3. WHEN organizing content THEN the system SHALL calculate optimal topic count based on page limits and reference formatting patterns
+4. WHEN content has overlapping topics THEN the system SHALL merge related information intelligently while preserving subtopic granularity
+5. WHEN available space exceeds extracted content THEN the system SHALL suggest including additional relevant subtopics or expanding existing content rather than leaving empty space
+6. WHEN reference formatting is provided THEN the system SHALL adjust topic extraction to match the reference's content density and organization style
 
 ### Requirement 5
 
-**User Story:** As a user, I want to see all identified topics and choose which ones to include so that I can customize my cheat sheet content.
+**User Story:** As a user, I want to see all identified topics with their subtopics and prioritize them based on importance so that I can create a focused cheat sheet that fits within my page limits.
 
 #### Acceptance Criteria
 
-1. WHEN topic organization is complete THEN the system SHALL display all topics and subtopics with preview content
-2. WHEN a user views topics THEN the system SHALL show checkboxes for each topic and subtopic for selection
-3. WHEN a user deselects topics THEN the system SHALL remove them from the final cheat sheet
-4. WHEN a user selects/deselects topics THEN the system SHALL update page count estimates in real-time
+1. WHEN topic organization is complete THEN the system SHALL display all topics and subtopics in a hierarchical structure with preview content
+2. WHEN a user views topics THEN the system SHALL show priority controls (high, medium, low) for each topic and individual subtopic selection
+3. WHEN a user sets topic priorities THEN the system SHALL automatically select high-priority topics first and fill remaining space with medium and low priority content
+4. WHEN a user adjusts priorities THEN the system SHALL update page count estimates and content fit warnings in real-time
+5. WHEN space is limited THEN the system SHALL allow users to choose specific subtopics within a topic rather than including entire topics
+6. WHEN the system detects available space THEN it SHALL suggest including additional lower-priority topics instead of leaving pages partially empty
 
 ### Requirement 6
 
@@ -86,14 +90,15 @@ This feature enables users to create customized cheat sheets from multiple file 
 
 ### Requirement 8
 
-**User Story:** As a user, I want to use another cheat sheet as a reference template so that I can maintain consistency across my study materials.
+**User Story:** As a user, I want to use another cheat sheet as a reference template so that my generated cheat sheet closely resembles the reference format and style.
 
 #### Acceptance Criteria
 
-1. WHEN a user uploads a reference cheat sheet THEN the system SHALL analyze its structure and formatting
-2. WHEN a reference is provided THEN the system SHALL apply similar layout, font choices, and organization patterns
-3. WHEN using a reference THEN the system SHALL maintain the content from user's source materials without adding external content
-4. WHEN reference formatting conflicts with content THEN the system SHALL prioritize content accuracy over formatting
+1. WHEN a user uploads a reference cheat sheet THEN the system SHALL analyze its visual layout, typography, spacing, color scheme, and content organization patterns
+2. WHEN a reference is provided THEN the system SHALL extract specific formatting elements including font sizes, column layouts, section headers, bullet styles, and visual hierarchy
+3. WHEN applying reference formatting THEN the system SHALL adapt the user's content to match the reference's structure while preserving content accuracy
+4. WHEN the reference has specific content density patterns THEN the system SHALL adjust topic selection and content length to match the reference's information density
+5. WHEN reference formatting conflicts with content THEN the system SHALL provide user options to modify content or adjust formatting while maintaining reference similarity
 
 ### Requirement 9
 
@@ -108,11 +113,24 @@ This feature enables users to create customized cheat sheets from multiple file 
 
 ### Requirement 10
 
-**User Story:** As a user, I want to be warned about content that cannot fit so that I can make informed decisions about what to include.
+**User Story:** As a user, I want intelligent space management that warns about overflow and suggests optimal content utilization so that I can make informed decisions about content inclusion.
 
 #### Acceptance Criteria
 
-1. WHEN content exceeds page limits THEN the system SHALL display a warning with specific details about overflow
-2. WHEN warning is shown THEN the system SHALL indicate which topics or sections will be truncated
-3. WHEN content doesn't fit THEN the system SHALL suggest options to reduce content or increase pages
-4. WHEN user proceeds despite warnings THEN the system SHALL prioritize content based on user's topic selections
+1. WHEN content exceeds page limits THEN the system SHALL display a warning with specific details about overflow and suggest priority-based content reduction
+2. WHEN warning is shown THEN the system SHALL indicate which topics or subtopics will be truncated based on priority levels
+3. WHEN content doesn't fill available space THEN the system SHALL suggest including additional lower-priority topics or expanding existing content
+4. WHEN user proceeds with content decisions THEN the system SHALL optimize layout to maximize space utilization while maintaining readability
+5. WHEN reference formatting is used THEN the system SHALL match the reference's space utilization patterns and content density
+
+### Requirement 11
+
+**User Story:** As a user, I want granular control over topic and subtopic selection with priority-based auto-filling so that I can create focused cheat sheets that make optimal use of available space.
+
+#### Acceptance Criteria
+
+1. WHEN viewing topics THEN the system SHALL display each topic with its individual subtopics as selectable items
+2. WHEN setting priorities THEN the system SHALL allow priority assignment (high, medium, low) at both topic and subtopic levels
+3. WHEN auto-filling content THEN the system SHALL first include all high-priority items, then medium-priority items until space is optimally utilized
+4. WHEN space remains after priority selection THEN the system SHALL suggest specific subtopics to include rather than leaving pages partially empty
+5. WHEN reference formatting provides content density guidance THEN the system SHALL adjust auto-filling to match reference patterns

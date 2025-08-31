@@ -1,315 +1,368 @@
-'use client'
-
-import React, { useState, useEffect } from 'react'
-import { HelpCircle, BookOpen, AlertCircle, CheckCircle, Info } from 'lucide-react'
+import React, { useState } from 'react'
+import { X, ChevronRight, ChevronLeft, HelpCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 
 interface ContextualHelpProps {
-  workflowStage: 'upload' | 'processing' | 'topics' | 'customization' | 'generation'
-  userProgress?: {
-    filesUploaded: number
-    topicsSelected: number
-    settingsConfigured: boolean
-  }
+  isOpen: boolean
+  onClose: () => void
+  context: 'reference-analysis' | 'priority-selection' | 'space-optimization' | 'topic-extraction'
 }
 
-interface HelpContent {
+interface HelpStep {
   title: string
-  description: string
-  tips: string[]
-  commonIssues: Array<{
-    issue: string
-    solution: string
-  }>
-  nextSteps: string[]
+  content: string
+  image?: string
+  tips?: string[]
 }
 
-const helpContent: Record<string, HelpContent> = {
-  upload: {
-    title: 'File Upload Stage',
-    description: 'Upload your study materials to begin creating your cheat sheet.',
-    tips: [
-      'Supported formats: PDF, Word (.docx), PowerPoint (.pptx), Excel (.xlsx), Images, Text files',
-      'Maximum file size: 50MB per file',
-      'Higher quality files produce better results',
-      'You can upload multiple files at once'
-    ],
-    commonIssues: [
+const helpContent = {
+  'reference-analysis': {
+    title: 'Reference Format Analysis Workflow',
+    steps: [
       {
-        issue: 'File format not supported',
-        solution: 'Convert to .docx, .pptx, .xlsx, or save as PDF'
+        title: 'Upload Reference File',
+        content: 'Start by uploading a high-quality reference cheat sheet. Supported formats include PDF, PNG, JPG, and other image formats. For best results, use clear, high-resolution files.',
+        tips: [
+          'Use digital files rather than scanned copies when possible',
+          'Ensure text is clearly readable in the reference',
+          'Choose references with similar content complexity to your material'
+        ]
       },
       {
-        issue: 'File too large',
-        solution: 'Compress images or split into smaller files'
+        title: 'Visual Analysis Process',
+        content: 'The system analyzes your reference to extract visual elements including layout structure, typography, color schemes, spacing patterns, and content organization.',
+        tips: [
+          'Analysis may take 30-60 seconds for complex references',
+          'Higher quality references produce better analysis results',
+          'The system identifies headers, bullets, columns, and visual hierarchy'
+        ]
       },
       {
-        issue: 'Upload fails',
-        solution: 'Check internet connection and try a different browser'
+        title: 'Format Template Generation',
+        content: 'Based on the analysis, a format template is created with CSS styles and layout rules that match your reference appearance.',
+        tips: [
+          'Templates include font sizes, colors, spacing, and layout structure',
+          'Content density patterns are extracted to guide topic selection',
+          'Visual elements like bullets and headers are recreated'
+        ]
+      },
+      {
+        title: 'Content Adaptation',
+        content: 'Your extracted topics and content are adapted to match the reference format while preserving original meaning and accuracy.',
+        tips: [
+          'Content length is adjusted to match reference density',
+          'Topic organization follows reference structure patterns',
+          'Visual hierarchy is applied to match reference style'
+        ]
+      },
+      {
+        title: 'Review and Refinement',
+        content: 'Preview the formatted result and make adjustments as needed. You can modify topic selection, adjust formatting, or try different references.',
+        tips: [
+          'Use preview feature to check formatting accuracy',
+          'Adjust topic priorities if content doesn\'t fit well',
+          'Consider trying multiple references to find the best match'
+        ]
       }
-    ],
-    nextSteps: [
-      'Wait for file processing to complete',
-      'Review extracted content for accuracy',
-      'Proceed to topic selection'
     ]
   },
-  processing: {
-    title: 'Content Processing',
-    description: 'We\'re extracting and analyzing content from your files.',
-    tips: [
-      'Processing time depends on file size and complexity',
-      'Images and scanned documents take longer (OCR processing)',
-      'You can monitor progress for each file',
-      'Large files may take several minutes'
-    ],
-    commonIssues: [
+  'priority-selection': {
+    title: 'Priority-Based Topic Selection',
+    steps: [
       {
-        issue: 'Processing takes too long',
-        solution: 'Large files with many images need more time. Be patient or try smaller files.'
+        title: 'Understanding Priority Levels',
+        content: 'Topics can be assigned High, Medium, or Low priority. High priority content is always included, medium priority is included when space allows, and low priority fills remaining space.',
+        tips: [
+          'High: Essential formulas, key concepts, critical definitions',
+          'Medium: Important examples, detailed explanations, secondary concepts',
+          'Low: Background information, additional examples, supplementary content'
+        ]
       },
       {
-        issue: 'Processing fails',
-        solution: 'Check if file is corrupted. Try re-saving and uploading again.'
+        title: 'Setting Topic Priorities',
+        content: 'Review each extracted topic and assign appropriate priority levels. Consider what information is most critical for your study needs.',
+        tips: [
+          'Start by identifying absolutely essential content for high priority',
+          'Consider your specific study goals when setting priorities',
+          'Remember that you can adjust priorities and see immediate space impact'
+        ]
       },
       {
-        issue: 'Poor OCR results',
-        solution: 'Ensure images have good contrast and resolution. Retake photos if needed.'
+        title: 'Subtopic Granular Control',
+        content: 'Each topic can be broken down into subtopics with individual priority settings, giving you fine-grained control over content inclusion.',
+        tips: [
+          'Expand topics to see available subtopics',
+          'Set different priorities for subtopics within the same topic',
+          'Use subtopic selection to include only the most relevant parts of broader topics'
+        ]
+      },
+      {
+        title: 'Auto-Fill Optimization',
+        content: 'Use the auto-fill feature to automatically select content based on priorities and available space for optimal utilization.',
+        tips: [
+          'Auto-fill selects high priority first, then fills remaining space efficiently',
+          'Monitor space utilization dashboard during auto-fill',
+          'You can manually adjust the auto-fill results as needed'
+        ]
       }
-    ],
-    nextSteps: [
-      'Review extracted content when processing completes',
-      'Check for any missing or incorrect content',
-      'Move to topic selection phase'
     ]
   },
-  topics: {
-    title: 'Topic Selection',
-    description: 'Choose which topics to include and customize content for your cheat sheet.',
-    tips: [
-      'AI has organized content into logical topics',
-      'Select topics most relevant to your study goals',
-      'Edit content to focus on key points',
-      'Page count estimate updates as you select topics'
-    ],
-    commonIssues: [
+  'space-optimization': {
+    title: 'Space Optimization System',
+    steps: [
       {
-        issue: 'Topics don\'t make sense',
-        solution: 'Review and reorganize topics manually. Merge or split as needed.'
+        title: 'Space Utilization Dashboard',
+        content: 'Monitor your space usage with the real-time dashboard showing available space, used space, and utilization percentage.',
+        tips: [
+          'Target 80-95% utilization for optimal results',
+          'Green indicates good utilization, yellow warns of issues, red shows overflow',
+          'Dashboard updates immediately as you make content changes'
+        ]
       },
       {
-        issue: 'Missing important content',
-        solution: 'Check if content was extracted properly. Add manually if needed.'
+        title: 'Intelligent Suggestions',
+        content: 'The system provides context-aware recommendations to optimize space usage based on your current selection and available space.',
+        tips: [
+          'Add content suggestions appear when space is under-utilized',
+          'Reduction suggestions help when content exceeds available space',
+          'Suggestions consider your priority settings and content importance'
+        ]
       },
       {
-        issue: 'Too much content selected',
-        solution: 'Deselect less important topics or increase page count'
+        title: 'Overflow Management',
+        content: 'When content exceeds available space, the system provides specific warnings and reduction recommendations.',
+        tips: [
+          'Review which specific content will be truncated',
+          'Consider increasing page count if acceptable',
+          'Use priority-based reduction to maintain most important content'
+        ]
+      },
+      {
+        title: 'Space Efficiency Optimization',
+        content: 'Achieve optimal space usage by balancing content selection with available space and maintaining readability.',
+        tips: [
+          'Don\'t sacrifice readability for space efficiency',
+          'Use preview feature to verify visual balance',
+          'Consider reference formatting to guide space utilization'
+        ]
       }
-    ],
-    nextSteps: [
-      'Review selected topics and content',
-      'Proceed to customization settings',
-      'Configure page layout and formatting'
     ]
   },
-  customization: {
-    title: 'Layout Customization',
-    description: 'Configure page settings and formatting for your cheat sheet.',
-    tips: [
-      'Balance content density with readability',
-      'More pages allow for more detailed content',
-      'Smaller text fits more content but may be harder to read',
-      'Reference templates help maintain consistent formatting'
-    ],
-    commonIssues: [
+  'topic-extraction': {
+    title: 'AI Topic Extraction Process',
+    steps: [
       {
-        issue: 'Content doesn\'t fit',
-        solution: 'Increase page count, reduce text size, or deselect some topics'
+        title: 'Content Analysis',
+        content: 'AI analyzes your uploaded files to identify distinct topics and concepts, considering document structure and content relationships.',
+        tips: [
+          'Multiple file types are processed and combined intelligently',
+          'Document structure (headings, sections) guides topic identification',
+          'Related content from different files is merged appropriately'
+        ]
       },
       {
-        issue: 'Text too small to read',
-        solution: 'Increase text size or reduce content selection'
+        title: 'Space-Aware Organization',
+        content: 'Topic extraction considers your page limits and reference formatting to determine optimal topic count and granularity.',
+        tips: [
+          'Topic count is adjusted based on available space',
+          'Reference content density guides extraction depth',
+          'Subtopics are created for granular selection control'
+        ]
       },
       {
-        issue: 'Reference template doesn\'t work',
-        solution: 'Try a simpler template or adjust settings manually'
+        title: 'Content Preservation',
+        content: 'Original wording and terminology are preserved during topic extraction to maintain familiarity with source materials.',
+        tips: [
+          'Technical terms and specific wording are maintained',
+          'Content is condensed by removing redundancy, not changing meaning',
+          'No external information is added during extraction'
+        ]
+      },
+      {
+        title: 'Hierarchical Structure',
+        content: 'Topics are organized in a logical hierarchy with main topics and detailed subtopics for flexible content selection.',
+        tips: [
+          'Main topics represent broad concept areas',
+          'Subtopics allow selection of specific aspects within topics',
+          'Hierarchy reflects natural content organization from source materials'
+        ]
       }
-    ],
-    nextSteps: [
-      'Review layout preview',
-      'Make final adjustments to content or settings',
-      'Generate your cheat sheet'
-    ]
-  },
-  generation: {
-    title: 'Cheat Sheet Generation',
-    description: 'Creating your personalized study material.',
-    tips: [
-      'Generation includes layout optimization and image processing',
-      'AI may recreate some images for better clarity',
-      'Final PDF will be optimized for printing',
-      'Review the result before downloading'
-    ],
-    commonIssues: [
-      {
-        issue: 'Generation takes too long',
-        solution: 'Complex layouts and image recreation take time. Please wait.'
-      },
-      {
-        issue: 'Generated images poor quality',
-        solution: 'Choose original images over AI-generated ones in approval step'
-      },
-      {
-        issue: 'Layout issues in final PDF',
-        solution: 'Adjust settings and regenerate, or try different page size'
-      }
-    ],
-    nextSteps: [
-      'Review generated cheat sheet',
-      'Download PDF when satisfied',
-      'Print and test readability'
     ]
   }
 }
 
-export function ContextualHelp({ workflowStage, userProgress }: ContextualHelpProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
-  const content = helpContent[workflowStage]
+export function ContextualHelp({ isOpen, onClose, context }: ContextualHelpProps) {
+  const [currentStep, setCurrentStep] = useState(0)
+  const content = helpContent[context]
+  
+  if (!isOpen || !content) return null
 
-  const getStageIcon = () => {
-    switch (workflowStage) {
-      case 'upload':
-        return <BookOpen className="h-5 w-5" />
-      case 'processing':
-        return <Info className="h-5 w-5" />
-      case 'topics':
-        return <CheckCircle className="h-5 w-5" />
-      case 'customization':
-        return <AlertCircle className="h-5 w-5" />
-      case 'generation':
-        return <CheckCircle className="h-5 w-5" />
-      default:
-        return <HelpCircle className="h-5 w-5" />
+  const nextStep = () => {
+    if (currentStep < content.steps.length - 1) {
+      setCurrentStep(currentStep + 1)
     }
   }
 
-  const getProgressInfo = () => {
-    if (!userProgress) return null
-
-    switch (workflowStage) {
-      case 'upload':
-        return userProgress.filesUploaded > 0 ? 
-          `${userProgress.filesUploaded} file(s) uploaded` : 
-          'No files uploaded yet'
-      case 'topics':
-        return userProgress.topicsSelected > 0 ? 
-          `${userProgress.topicsSelected} topic(s) selected` : 
-          'No topics selected yet'
-      case 'customization':
-        return userProgress.settingsConfigured ? 
-          'Settings configured' : 
-          'Settings not configured'
-      default:
-        return null
+  const prevStep = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1)
     }
   }
+
+  const currentStepData = content.steps[currentStep]
 
   return (
-    <Card className="w-full max-w-md">
-      <Collapsible open={isExpanded} onOpenChange={setIsExpanded}>
-        <CollapsibleTrigger asChild>
-          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-            <CardTitle className="flex items-center justify-between text-base">
-              <div className="flex items-center gap-2">
-                {getStageIcon()}
-                {content.title}
-              </div>
-              <div className="flex items-center gap-2">
-                {getProgressInfo() && (
-                  <Badge variant="secondary" className="text-xs">
-                    {getProgressInfo()}
-                  </Badge>
-                )}
-                <HelpCircle className="h-4 w-4" />
-              </div>
-            </CardTitle>
-          </CardHeader>
-        </CollapsibleTrigger>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <Card className="w-full max-w-2xl max-h-[80vh] overflow-y-auto m-4">
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
+          <CardTitle className="text-lg font-semibold">
+            {content.title}
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="h-8 w-8 p-0"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </CardHeader>
         
-        <CollapsibleContent>
-          <CardContent className="pt-0">
-            <p className="text-sm text-muted-foreground mb-4">
-              {content.description}
+        <CardContent className="space-y-6">
+          {/* Progress indicator */}
+          <div className="flex items-center space-x-2">
+            {content.steps.map((_, index) => (
+              <div
+                key={index}
+                className={`h-2 flex-1 rounded-full ${
+                  index === currentStep
+                    ? 'bg-blue-500'
+                    : index < currentStep
+                    ? 'bg-blue-200'
+                    : 'bg-gray-200'
+                }`}
+              />
+            ))}
+          </div>
+          
+          {/* Step counter */}
+          <div className="text-sm text-gray-500 text-center">
+            Step {currentStep + 1} of {content.steps.length}
+          </div>
+          
+          {/* Step content */}
+          <div className="space-y-4">
+            <h3 className="text-xl font-semibold text-gray-900">
+              {currentStepData.title}
+            </h3>
+            
+            <p className="text-gray-700 leading-relaxed">
+              {currentStepData.content}
             </p>
-
-            <div className="space-y-4">
-              <div>
-                <h4 className="font-medium text-sm mb-2">Tips for Success</h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  {content.tips.map((tip, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-primary mt-1">•</span>
+            
+            {currentStepData.tips && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <div className="flex items-center space-x-2 mb-2">
+                  <HelpCircle className="h-4 w-4 text-blue-600" />
+                  <span className="font-medium text-blue-900">Tips</span>
+                </div>
+                <ul className="space-y-1 text-sm text-blue-800">
+                  {currentStepData.tips.map((tip, index) => (
+                    <li key={index} className="flex items-start space-x-2">
+                      <span className="text-blue-600 mt-1">•</span>
                       <span>{tip}</span>
                     </li>
                   ))}
                 </ul>
               </div>
-
-              <div>
-                <h4 className="font-medium text-sm mb-2">Common Issues</h4>
-                <div className="space-y-2">
-                  {content.commonIssues.map((item, index) => (
-                    <div key={index} className="text-sm">
-                      <div className="font-medium text-destructive">
-                        {item.issue}
-                      </div>
-                      <div className="text-muted-foreground ml-2">
-                        → {item.solution}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div>
-                <h4 className="font-medium text-sm mb-2">Next Steps</h4>
-                <ul className="text-sm text-muted-foreground space-y-1">
-                  {content.nextSteps.map((step, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <span className="text-primary mt-1">{index + 1}.</span>
-                      <span>{step}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+            )}
+          </div>
+          
+          {/* Navigation */}
+          <div className="flex items-center justify-between pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={prevStep}
+              disabled={currentStep === 0}
+              className="flex items-center space-x-2"
+            >
+              <ChevronLeft className="h-4 w-4" />
+              <span>Previous</span>
+            </Button>
+            
+            <div className="flex items-center space-x-2">
+              {content.steps.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentStep(index)}
+                  className={`w-2 h-2 rounded-full transition-colors ${
+                    index === currentStep
+                      ? 'bg-blue-500'
+                      : 'bg-gray-300 hover:bg-gray-400'
+                  }`}
+                />
+              ))}
             </div>
-          </CardContent>
-        </CollapsibleContent>
-      </Collapsible>
-    </Card>
+            
+            {currentStep < content.steps.length - 1 ? (
+              <Button
+                onClick={nextStep}
+                className="flex items-center space-x-2"
+              >
+                <span>Next</span>
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                onClick={onClose}
+                className="flex items-center space-x-2"
+              >
+                <span>Done</span>
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   )
 }
 
 // Hook for managing contextual help state
 export function useContextualHelp() {
+  const [isOpen, setIsOpen] = useState(false)
+  const [context, setContext] = useState<ContextualHelpProps['context']>('topic-extraction')
   const [workflowStage, setWorkflowStage] = useState<'upload' | 'processing' | 'topics' | 'customization' | 'generation'>('upload')
   const [userProgress, setUserProgress] = useState({
-    filesUploaded: 0,
-    topicsSelected: 0,
-    settingsConfigured: false
+    completedSteps: [],
+    currentStep: 0
   })
-
-  const updateProgress = (updates: Partial<typeof userProgress>) => {
-    setUserProgress(prev => ({ ...prev, ...updates }))
+  
+  const openHelp = (helpContext: ContextualHelpProps['context']) => {
+    setContext(helpContext)
+    setIsOpen(true)
   }
-
+  
+  const closeHelp = () => {
+    setIsOpen(false)
+  }
+  
+  const updateProgress = (step: string) => {
+    setUserProgress(prev => ({
+      ...prev,
+      completedSteps: [...prev.completedSteps, step],
+      currentStep: prev.currentStep + 1
+    }))
+  }
+  
   return {
+    isOpen,
+    context,
     workflowStage,
     setWorkflowStage,
     userProgress,
-    updateProgress
+    updateProgress,
+    openHelp,
+    closeHelp
   }
 }

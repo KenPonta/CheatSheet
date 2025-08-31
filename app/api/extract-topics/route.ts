@@ -1,8 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { FileProcessing } from "@/backend/lib/file-processing"
 import { createCPUOptimizedProcessor } from "@/backend/lib/file-processing/cpu-optimized-processor"
-import { getTopicExtractionService } from "@/backend/lib/ai"
-import type { ExtractedContent, OrganizedTopic } from "@/backend/lib/ai/types"
+import { getTopicExtractionService, getAIContentService, getSpaceCalculationService } from "@/backend/lib/ai"
+import type { ExtractedContent, OrganizedTopic, SpaceConstraints, ReferenceFormatAnalysis } from "@/backend/lib/ai/types"
 
 export async function POST(request: NextRequest) {
   console.log('🚀 API Route: Starting file processing...');
@@ -213,35 +213,94 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    // Use AI service to extract and organize topics
-    console.log('🤖 Starting topic extraction...');
+    // Get space constraints from request if provided
+    const spaceConstraintsParam = formData.get("spaceConstraints") as string;
+    const referenceAnalysisParam = formData.get("referenceAnalysis") as string;
+    
+    let spaceConstraints: SpaceConstraints | undefined;
+    let referenceAnalysis: ReferenceFormatAnalysis | undefined;
+    
+    if (spaceConstraintsParam) {
+      try {
+        spaceConstraints = JSON.parse(spaceConstraintsParam);
+      } catch (e) {
+        console.warn("Invalid space constraints JSON, using default extraction");
+      }
+    }
+    
+    if (referenceAnalysisParam) {
+      try {
+        referenceAnalysis = JSON.parse(referenceAnalysisParam);
+      } catch (e) {
+        console.warn("Invalid reference analysis JSON, ignoring");
+      }
+    }
+
+    // Use AI service to extract and organize topics with space awareness
+    console.log('🤖 Starting space-aware topic extraction...');
     console.log(`📊 Extracted contents: ${extractedContents.length} items`);
     
-    const topicService = getTopicExtractionService()
-    console.log('✅ Topic service obtained');
+    const aiService = getAIContentService();
+    const spaceService = getSpaceCalculationService();
+    console.log('✅ AI and space services obtained');
     
-    const organizedTopics = await topicService.extractTopics(extractedContents)
-    console.log(`✅ Topic extraction completed: ${organizedTopics.length} topics`);
+    let organizedTopics: OrganizedTopic[];
+    let spaceOptimization: any = null;
+    
+    if (spaceConstraints) {
+      console.log('🎯 Using space-aware extraction with constraints:', spaceConstraints);
+      
+      // Calculate available space
+      const availableSpace = spaceService.calculateAvailableSpace(spaceConstraints);
+      console.log(`📏 Available space calculated: ${availableSpace} characters`);
+      
+      // Extract topics with space constraints
+      organizedTopics = await aiService.extractTopicsWithSpaceConstraints(
+        extractedContents,
+        spaceConstraints,
+        referenceAnalysis
+      );
+      
+      // Optimize space utilization
+      spaceOptimization = aiService.optimizeSpaceUtilization(
+        organizedTopics,
+        availableSpace,
+        referenceAnalysis
+      );
+      
+      console.log(`✅ Space-aware topic extraction completed: ${organizedTopics.length} topics with optimization`);
+    } else {
+      console.log('📝 Using standard topic extraction');
+      const topicService = getTopicExtractionService();
+      organizedTopics = await topicService.extractTopics(extractedContents);
+      console.log(`✅ Standard topic extraction completed: ${organizedTopics.length} topics`);
+    }
 
-    // Convert to frontend format
+    // Convert to enhanced frontend format with priority and space information
     const formattedTopics = organizedTopics.map((topic, index) => ({
-      id: `topic-${index}`,
+      id: topic.id || `topic-${index}`,
       topic: topic.title,
       content: topic.content,
       confidence: topic.confidence,
       source: topic.sourceFiles.join(", "),
-      subtopics: topic.subtopics,
+      subtopics: topic.subtopics.map(sub => ({
+        ...sub,
+        isSelected: sub.priority === 'high' // Auto-select high priority subtopics
+      })),
       examples: topic.examples,
       originalWording: topic.originalWording,
-      selected: true,
+      selected: topic.priority === 'high', // Auto-select high priority topics
       originalContent: topic.content,
-      isModified: false
+      isModified: false,
+      priority: topic.priority || 'medium',
+      estimatedSpace: topic.estimatedSpace || Math.ceil(topic.content.length * 1.2)
     }))
 
     // Get processing statistics
     const stats = FileProcessing.getStats()
 
-    return NextResponse.json({
+    // Prepare response with enhanced space-aware information
+    const response: any = {
       topics: formattedTopics,
       totalFiles: files.length,
       successfulFiles: extractedContents.length,
@@ -257,7 +316,37 @@ export async function POST(request: NextRequest) {
         error: result.error,
         suggestion: FileProcessing.getUserFriendlyError(result.error || "Unknown error")
       }))
-    })
+    };
+
+    // Add space optimization results if available
+    if (spaceOptimization && spaceConstraints) {
+      const spaceService = getSpaceCalculationService();
+      const availableSpace = spaceService.calculateAvailableSpace(spaceConstraints);
+      
+      response.spaceOptimization = {
+        availableSpace,
+        optimization: spaceOptimization,
+        constraints: spaceConstraints,
+        utilizationInfo: spaceService.calculateSpaceUtilization(
+          spaceOptimization.recommendedTopics.map((topicId: string) => {
+            const topic = organizedTopics.find(t => t.id === topicId);
+            const subtopicSelection = spaceOptimization.recommendedSubtopics.find((rs: any) => rs.topicId === topicId);
+            return {
+              topicId,
+              subtopicIds: subtopicSelection?.subtopicIds || [],
+              priority: topic?.priority || 'medium',
+              estimatedSpace: topic?.estimatedSpace || 0
+            };
+          }),
+          availableSpace,
+          organizedTopics
+        )
+      };
+      
+      response.message += ` with space optimization (${Math.round(response.spaceOptimization.utilizationInfo.utilizationPercentage * 100)}% utilization)`;
+    }
+
+    return NextResponse.json(response)
   } catch (error) {
     console.error("Topic extraction error:", error)
     

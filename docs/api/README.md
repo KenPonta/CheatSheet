@@ -600,3 +600,155 @@ async function waitForProcessing(uploadId: string): Promise<any> {
 - Advanced filtering options
 - Template management API
 - Usage analytics API
+##
+ New Enhanced APIs
+
+### Space Optimization API
+
+The Space Optimization API provides intelligent space management for cheat sheet generation, ensuring optimal content utilization and preventing overflow issues.
+
+**Key Features:**
+- Calculate available space based on configuration
+- Estimate content space requirements
+- Optimize topic selection for space efficiency
+- Generate intelligent suggestions for space utilization
+- Real-time space monitoring and warnings
+
+**Base Endpoint:** `/api/space-optimization`
+
+See [Space Optimization API Documentation](./space-optimization-api.md) for detailed endpoint information.
+
+### Reference Analysis API
+
+The Reference Analysis API enables format matching with reference cheat sheets, allowing users to create cheat sheets that closely match existing templates.
+
+**Key Features:**
+- Analyze reference visual formatting and layout patterns
+- Extract color schemes, typography, and spacing information
+- Apply reference formatting to user content
+- Generate reusable format templates
+- Compare multiple reference formats
+
+**Base Endpoint:** `/api/reference-analysis`
+
+See [Reference Analysis API Documentation](./reference-analysis-api.md) for detailed endpoint information.
+
+## Enhanced Features Integration
+
+### Priority-Based Content Selection
+
+The enhanced topic extraction and generation endpoints now support priority-based content selection:
+
+```typescript
+// Enhanced topic extraction with priorities
+POST /api/extract-topics-space-aware
+{
+  uploadId: string
+  spaceConstraints: {
+    availablePages: number
+    targetUtilization: number
+    referenceContentDensity?: number
+  }
+  options?: {
+    maxTopics?: number
+    focusAreas?: string[]
+    priorityGuidance?: 'balanced' | 'comprehensive' | 'focused'
+  }
+}
+
+// Response includes priority suggestions
+{
+  success: boolean
+  data: {
+    topics: Array<{
+      id: string
+      title: string
+      content: string
+      priority: 'high' | 'medium' | 'low'
+      estimatedSpace: number
+      subtopics: Array<{
+        id: string
+        title: string
+        content: string
+        priority: 'high' | 'medium' | 'low'
+        estimatedSpace: number
+      }>
+    }>
+    spaceAnalysis: {
+      optimalTopicCount: number
+      estimatedUtilization: number
+      suggestions: SpaceSuggestion[]
+    }
+  }
+}
+```
+
+### Reference-Guided Generation
+
+Cheat sheet generation now supports reference format matching:
+
+```typescript
+// Enhanced generation with reference formatting
+POST /api/generate-cheatsheet
+{
+  uploadId: string
+  selectedTopics: Array<{
+    topicId: string
+    subtopicIds: string[]
+    priority: 'high' | 'medium' | 'low'
+  }>
+  config: CheatSheetConfig
+  referenceFormatting?: {
+    analysisId: string
+    applyVisualElements: boolean
+    matchContentDensity: boolean
+    adaptContentLength: boolean
+  }
+  spaceOptimization?: {
+    targetUtilization: number
+    allowOverflow: boolean
+    priorityBasedReduction: boolean
+  }
+}
+```
+
+## Migration Guide
+
+### Upgrading from v1.0.0
+
+The new enhanced APIs are backward compatible with existing implementations. To take advantage of new features:
+
+1. **Space Optimization**: Replace manual space calculations with the Space Optimization API
+2. **Reference Formatting**: Use Reference Analysis API for format matching
+3. **Priority Selection**: Update topic selection to use priority-based selection
+4. **Enhanced Generation**: Use new generation parameters for better results
+
+### Breaking Changes
+
+None. All existing endpoints continue to work as before.
+
+### New Required Dependencies
+
+For optimal performance with new features:
+- Increased memory allocation for reference analysis
+- Additional storage for format templates
+- Enhanced AI service quotas for space optimization
+
+## Support and Resources
+
+### Documentation
+- [User Guides](../user-guides/README.md)
+- [Troubleshooting](../user-guides/troubleshooting.md)
+- [API Examples](./examples/)
+
+### Community
+- GitHub Issues for bug reports
+- Discussions for feature requests
+- Stack Overflow for implementation questions
+
+### Enterprise Support
+Contact our enterprise team for:
+- Custom API endpoints
+- Higher rate limits
+- Priority support
+- On-premise deployment options
