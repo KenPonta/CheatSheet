@@ -149,6 +149,11 @@ export class PDFOutputGenerator {
         }
       }
       
+      // Validate the PDF buffer
+      if (!this.validatePDFBuffer(pdfBuffer)) {
+        throw new Error(`Generated PDF is invalid or corrupted (${pdfBuffer.length} bytes)`);
+      }
+      
       // Get page count from PDF
       const pageCount = await this.getPageCount(pdfBuffer);
       console.log(`📄 PDF page count: ${pageCount}`);
@@ -453,18 +458,7 @@ ${mathConfig.displayEquations.numbered ? '\\numberwithin{equation}{section}' : '
   \\textbf{Step \\thesolutionstep:} #1\\\\%
 }
 
-% Key formula environment
-\\newcommand{\\keyformula}[2]{%
-  \\begin{equation}%
-  \\label{eq:#2}%
-  #1%
-  \\end{equation}%
-}
-
-% Inline formula with label
-\\newcommand{\\inlineformula}[2]{%
-  $#1$ \\label{eq:#2}%
-}`;
+% Simple formula environments (removed custom commands to avoid compilation issues)`;
   }
 
   /**
@@ -575,12 +569,23 @@ ${mathConfig.displayEquations.numbered ? '\\numberwithin{equation}{section}' : '
    * Generate a formula
    */
   private generateFormula(formula: Formula, config: CompactLayoutConfig): string {
-    const formulaId = formula.id.replace(/[^a-zA-Z0-9]/g, '_');
+    // Ensure we have valid LaTeX content
+    const latexContent = formula.latex || formula.originalText || formula.text || '';
+    if (!latexContent.trim()) {
+      return ''; // Skip empty formulas
+    }
     
+    // Clean the LaTeX content - remove any problematic characters
+    const cleanLatex = this.cleanLaTeXFormula(latexContent);
+    if (!cleanLatex.trim()) {
+      return ''; // Skip if cleaning resulted in empty content
+    }
+    
+    // Use simple LaTeX environments instead of custom commands
     if (formula.type === 'display') {
-      return `\\keyformula{${formula.latex}}{${formulaId}}\n\n`;
+      return `\\begin{equation}\n${cleanLatex}\n\\end{equation}\n\n`;
     } else {
-      return `\\inlineformula{${formula.latex}}{${formulaId}} `;
+      return `$${cleanLatex}$ `;
     }
   }
 
@@ -614,9 +619,8 @@ ${mathConfig.displayEquations.numbered ? '\\numberwithin{equation}{section}' : '
   private processContent(content: string): string {
     let processed = content;
     
-    // Handle lists first (before other formatting)
-    processed = processed.replace(/^\* (.+)$/gm, '\\item $1');
-    processed = processed.replace(/^(\d+)\. (.+)$/gm, '\\item $2');
+    // Handle lists first (before other formatting) - wrap in proper environments
+    processed = this.convertListsToLaTeX(processed);
     
     // Handle markdown-style formatting
     // Handle bold text
@@ -673,6 +677,143 @@ ${mathConfig.displayEquations.numbered ? '\\numberwithin{equation}{section}' : '
       .replace(/\^/g, '\\textasciicircum ')
       .replace(/_/g, '\\_')
       .replace(/~/g, '\\textasciitilde ');
+  }
+
+  /**
+   * Validate PDF buffer to ensure it's a valid PDF file
+   */
+  private validatePDFBuffer(buffer: Buffer): boolean {
+    if (!buffer || buffer.length < 4) {
+      return false;
+    }
+    
+    // Check PDF header
+    const header = buffer.toString('ascii', 0, 4);
+    if (!header.startsWith('%PDF')) {
+      return false;
+    }
+    
+    // Check for PDF trailer (should end with %%EOF)
+    const trailer = buffer.toString('ascii', Math.max(0, buffer.length - 20));
+    if (!trailer.includes('%%EOF')) {
+      console.warn('PDF may be incomplete - missing %%EOF trailer');
+    }
+    
+    return true;
+  }
+
+  /**
+   * Clean LaTeX formula content to prevent compilation errors
+   */
+  private cleanLaTeXFormula(latex: string): string {
+    let cleaned = latex.trim();
+    
+    // Remove any surrounding $ signs (we'll add them in the command)
+    cleaned = cleaned.replace(/^\$+|\$+$/g, '');
+    
+    // Remove any surrounding \( \) or \[ \] (we'll handle display vs inline in the command)
+    cleaned = cleaned.replace(/^\\[\(\[]|\\[\)\]]$/g, '');
+    
+    // Ensure braces are balanced
+    const openBraces = (cleaned.match(/\{/g) || []).length;
+    const closeBraces = (cleaned.match(/\}/g) || []).length;
+    
+    if (openBraces !== closeBraces) {
+      // If braces are unbalanced, escape them
+      cleaned = cleaned.replace(/\{/g, '\\{').replace(/\}/g, '\\}');
+    }
+    
+    // Remove any problematic characters that might cause runaway arguments
+    cleaned = cleaned.replace(/[\r\n]+/g, ' '); // Replace newlines with spaces
+    cleaned = cleaned.replace(/\s+/g, ' '); // Normalize whitespace
+    
+    return cleaned;
+  }
+
+  /**
+   * Convert lists to proper LaTeX environments
+   */
+  private convertListsToLaTeX(content: string): string {
+    const lines = content.split('\n');
+    const result: string[] = [];
+    let inBulletList = false;
+    let inNumberedList = false;
+    let listItems: string[] = [];
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const bulletMatch = line.match(/^\* (.+)$/);
+      const numberedMatch = line.match(/^(\d+)\. (.+)$/);
+      
+      if (bulletMatch) {
+        // Handle bullet list
+        if (inNumberedList) {
+          // Close numbered list and start bullet list
+          result.push('\\begin{enumerate}');
+          result.push(...listItems.map(item => `\\item ${item}`));
+          result.push('\\end{enumerate}');
+          listItems = [];
+          inNumberedList = false;
+        }
+        
+        if (!inBulletList) {
+          inBulletList = true;
+        }
+        listItems.push(bulletMatch[1]);
+        
+      } else if (numberedMatch) {
+        // Handle numbered list
+        if (inBulletList) {
+          // Close bullet list and start numbered list
+          result.push('\\begin{itemize}');
+          result.push(...listItems.map(item => `\\item ${item}`));
+          result.push('\\end{itemize}');
+          listItems = [];
+          inBulletList = false;
+        }
+        
+        if (!inNumberedList) {
+          inNumberedList = true;
+        }
+        listItems.push(numberedMatch[2]);
+        
+      } else {
+        // Not a list item - close any open lists
+        if (inBulletList) {
+          result.push('\\begin{itemize}');
+          result.push(...listItems.map(item => `\\item ${item}`));
+          result.push('\\end{itemize}');
+          listItems = [];
+          inBulletList = false;
+        }
+        
+        if (inNumberedList) {
+          result.push('\\begin{enumerate}');
+          result.push(...listItems.map(item => `\\item ${item}`));
+          result.push('\\end{enumerate}');
+          listItems = [];
+          inNumberedList = false;
+        }
+        
+        // Add the non-list line
+        result.push(line);
+      }
+    }
+    
+    // Close any remaining open lists
+    if (inBulletList) {
+      result.push('\\begin{itemize}');
+      result.push(...listItems.map(item => `\\item ${item}`));
+      result.push('\\end{itemize}');
+    }
+    
+    if (inNumberedList) {
+      result.push('\\begin{enumerate}');
+      result.push(...listItems.map(item => `\\item ${item}`));
+      result.push('\\end{enumerate}');
+    }
+    
+    return result.join('\n');
   }
 
   /**
@@ -776,6 +917,12 @@ ${mathConfig.displayEquations.numbered ? '\\numberwithin{equation}{section}' : '
           
           const pdfBuffer = await fs.readFile(pdfFile);
           console.log(`✅ Successfully read PDF file: ${pdfBuffer.length} bytes`);
+          
+          // Validate that this is actually a PDF file
+          if (pdfBuffer.length < 4 || !pdfBuffer.toString('ascii', 0, 4).startsWith('%PDF')) {
+            throw new Error(`Generated file is not a valid PDF (size: ${pdfBuffer.length} bytes, header: ${pdfBuffer.toString('ascii', 0, 10)})`);
+          }
+          
           resolve(pdfBuffer);
         } catch (error) {
           console.error(`❌ Failed to read PDF file: ${error.message}`);

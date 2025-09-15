@@ -81,6 +81,14 @@ export type {
   AcademicStructureConfig
 } from './academic-structure-organizer';
 
+// AI-Enhanced structure organizer
+export {
+  AIEnhancedStructureOrganizer
+} from './ai-enhanced-structure-organizer';
+export type {
+  AIStructureConfig
+} from './ai-enhanced-structure-organizer';
+
 // Cross-reference system
 export {
   CrossReferenceSystem,

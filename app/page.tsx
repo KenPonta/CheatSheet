@@ -9,7 +9,7 @@ import {
   BookOpen,
 } from "lucide-react"
 
-export default function StudyMaterialGenerator() {
+export default function CheeseSheetApp() {
 
   return (
     <div className="min-h-screen bg-background">
@@ -18,8 +18,13 @@ export default function StudyMaterialGenerator() {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="font-serif text-3xl font-bold text-foreground">Study Material Generator</h1>
-              <p className="text-muted-foreground mt-1">Transform your documents into optimized compact study materials</p>
+              <div className="flex items-center gap-3">
+                <img src="/B1.png" alt="CheeseSheet Logo" className="h-10 w-10" />
+                <div>
+                  <h1 className="font-serif text-3xl font-bold text-foreground">CheeseSheet</h1>
+                  <p className="text-muted-foreground mt-1">Transform your documents into optimized compact study materials</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>

@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Probability Cheatsheet Test</title>
+  <style>
+/* Compact Study Guide CSS - Dense Typography & Two-Column Layout */
+
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: Times, serif;
+  font-size: 10pt;
+  line-height: 1.15;
+  color: #000;
+  background: #fff;
+  margin: 0;
+  padding: 0;
+}
+
+/* Remove all card/box components */
+.card, .box, .panel, .widget {
+  display: none !important;
+}
+
+/* Document container */
+.document-container {
+  max-width: 100%;
+  margin: 0;
+  padding: 0.5mm 0.5mm 0.5mm 0.5mm;
+}
+
+/* Document header */
+.document-header {
+  margin-bottom: 0.5em;
+  text-align: center;
+  border-bottom: 1px solid #ccc;
+  padding-bottom: 0.5em;
+}
+
+.document-title {
+  font-family: Times, serif;
+  font-size: 1.4em;
+  font-weight: bold;
+  margin-bottom: 0.25em;
+}
+
+.document-meta {
+  font-size: 0.85em;
+  color: #666;
+}
+
+.document-meta .stats {
+  margin-left: 1em;
+}
+
+/* Table of Contents */
+.table-of-contents {
+  margin-bottom: 0.5em;
+  padding: 0.5em;
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+}
+
+.toc-title {
+  font-family: Times, serif;
+  font-size: 1.1em;
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+.toc-list, .toc-sublist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.toc-item {
+  margin-bottom: 0.1em;
+}
+
+.toc-link {
+  text-decoration: none;
+  color: #333;
+  display: block;
+  padding: 0.1em 0;
+}
+
+.toc-link:hover {
+  color: #0066cc;
+}
+
+.toc-number {
+  font-weight: bold;
+  margin-right: 0.5em;
+}
+
+.toc-level-1 .toc-link {
+  padding-left: 0;
+}
+
+.toc-level-2 .toc-link {
+  padding-left: 1em;
+  font-size: 0.95em;
+}
+
+.toc-level-3 .toc-link {
+  padding-left: 2em;
+  font-size: 0.9em;
+}
+
+/* Main content with two-column layout */
+.document-content {
+  margin-top: 0.5em;
+}
+
+.content-columns {
+  column-count: 2;
+  column-gap: undefinedmm;
+  column-fill: balance;
+}
+
+/* Document parts */
+.document-part {
+  break-inside: avoid-column;
+  margin-bottom: 0.5em;
+}
+
+.part-title {
+  font-family: Times, serif;
+  font-size: 1.2em;
+  font-weight: bold;
+  margin-bottom: 0.25em;
+  margin-top: 0.5em;
+  text-align: center;
+  border-bottom: 2px solid #333;
+  padding-bottom: 0.25em;
+}
+
+/* Academic sections */
+.academic-section {
+  margin-bottom: 0.4em;
+}
+
+.section-title {
+  font-family: Times, serif;
+  font-weight: bold;
+  margin-bottom: 0.25em;
+  margin-top: 0.5em;
+}
+
+.section-level-3 .section-title {
+  font-size: 1.1em;
+}
+
+.section-level-4 .section-title {
+  font-size: 1.05em;
+}
+
+.section-level-5 .section-title {
+  font-size: 1em;
+}
+
+.section-level-6 .section-title {
+  font-size: 0.95em;
+}
+
+.section-content {
+  margin-bottom: 0.25em;
+}
+
+/* Paragraphs and text */
+p {
+  margin-bottom: 0.25em;
+  text-align: justify;
+}
+
+/* Lists */
+ul, ol {
+  margin-bottom: 0.15em;
+  padding-left: 1.2em;
+}
+
+li {
+  margin-bottom: 0.075em;
+}
+
+/* Mathematical content */
+.formulas-section {
+  margin: 0.3em 0;
+}
+
+.formula {
+  margin: 0.3em 0;
+}
+
+.formula-display {
+  text-align: center;
+  margin: 0.5em 0;
+  break-inside: avoid;
+}
+
+.formula-display .formula-content {
+  display: block;
+  margin: 0.3em 0;
+}
+
+.formula-inline {
+  display: inline;
+}
+
+.formula-context {
+  font-size: 0.9em;
+  color: #666;
+  font-style: italic;
+  margin-top: 0.2em;
+  text-align: left;
+}
+
+/* Worked examples */
+.examples-section {
+  margin: 0.4em 0;
+}
+
+.worked-example {
+  margin-bottom: 0.5em;
+  break-inside: avoid;
+  border-left: 3px solid #ddd;
+  padding-left: 0.8em;
+}
+
+.example-title {
+  font-family: Times, serif;
+  font-size: 1em;
+  font-weight: bold;
+  margin-bottom: 0.3em;
+}
+
+.example-problem {
+  margin-bottom: 0.5em;
+  font-weight: 500;
+}
+
+.example-solution {
+  margin-top: 0.4em;
+}
+
+.solution-title {
+  font-family: Times, serif;
+  font-size: 0.95em;
+  font-weight: bold;
+  margin-bottom: 0.3em;
+}
+
+.solution-steps {
+  margin-left: 0.5em;
+}
+
+.solution-step {
+  display: flex;
+  margin-bottom: 0.4em;
+  break-inside: avoid;
+}
+
+.step-number {
+  font-weight: bold;
+  margin-right: 0.5em;
+  min-width: 1.5em;
+}
+
+.step-content {
+  flex: 1;
+}
+
+.step-description {
+  margin-bottom: 0.2em;
+}
+
+.step-formula {
+  margin: 0.3em 0;
+  text-align: center;
+}
+
+.step-explanation {
+  font-size: 0.95em;
+  color: #555;
+  margin-top: 0.2em;
+}
+
+/* Print styles */
+@media print {
+  .document-container {
+    margin: 0;
+    padding: 15mm;
+  }
+  
+  .content-columns {
+    column-count: 2;
+    column-gap: undefinedmm;
+  }
+  
+  .worked-example {
+    break-inside: avoid;
+  }
+  
+  .formula-display {
+    break-inside: avoid;
+  }
+  
+  .academic-section {
+    break-inside: avoid-column;
+  }
+}
+
+/* Responsive design for smaller screens */
+@media screen and (max-width: 768px) {
+  .content-columns {
+    column-count: 1;
+  }
+  
+  .document-container {
+    padding: 1em;
+  }
+  
+  .document-title {
+    font-size: 1.3em;
+  }
+}
+  </style>
+  <script>
+    window.MathJax = {
+    "tex": {
+        "inlineMath": [
+            [
+                "\\(",
+                "\\)"
+            ]
+        ],
+        "displayMath": [
+            [
+                "\\[",
+                "\\]"
+            ]
+        ],
+        "processEscapes": true,
+        "processEnvironments": true,
+        "tags": "ams"
+    },
+    "svg": {
+        "fontCache": "global",
+        "displayAlign": "center",
+        "displayIndent": "0"
+    },
+    "options": {
+        "skipHtmlTags": [
+            "script",
+            "noscript",
+            "style",
+            "textarea",
+            "pre",
+            "code"
+        ],
+        "includeHtmlTags": [
+            "p",
+            "div",
+            "span",
+            "li",
+            "td",
+            "th"
+        ],
+        "processHtmlClass": "tex2jax_process",
+        "ignoreHtmlClass": "tex2jax_ignore"
+    }
+};
+  </script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js"></script>
+</head>
+<body>
+  <div class="document-container">
+    <header class="document-header">
+      <h1 class="document-title">Probability Cheatsheet Test</h1>
+      <div class="document-meta">
+        <span class="generated-date">Generated: 9/9/2025</span>
+        <span class="stats">
+          13 sections • 
+          0 formulas • 
+          0 examples
+        </span>
+      </div>
+    </header>
+    <nav class="table-of-contents">
+      <h2 class="toc-title">Contents</h2>
+      <ul class="toc-list">
+    <li class="toc-item toc-level-0">
+      <a href="#part-1" class="toc-link">
+        <span class="toc-number"></span>
+        <span class="toc-title">Part 1: Discrete Probability</span>
+      </a>
+      <ul class="toc-sublist">
+      <li class="toc-item toc-level-1">
+        <a href="#section-1-1" class="toc-link">
+          <span class="toc-number">1.1 </span>
+          <span class="toc-title">Probability Basics</span>
+        </a>
+      </li>
+      <li class="toc-item toc-level-1">
+        <a href="#section-1-2" class="toc-link">
+          <span class="toc-number">1.2 </span>
+          <span class="toc-title">Complements and Unions</span>
+        </a>
+      </li>
+      <li class="toc-item toc-level-1">
+        <a href="#section-1-3" class="toc-link">
+          <span class="toc-number">1.3 </span>
+          <span class="toc-title">Conditional Probability</span>
+        </a>
+      </li>
+      <li class="toc-item toc-level-1">
+        <a href="#section-1-4" class="toc-link">
+          <span class="toc-number">1.4 </span>
+          <span class="toc-title">Bayes&#39; Theorem</span>
+        </a>
+      </li>
+      <li class="toc-item toc-level-1">
+        <a href="#section-1-5" class="toc-link">
+          <span class="toc-number">1.5 </span>
+          <span class="toc-title">Independence</span>
+        </a>
+      </li>
+      <li class="toc-item toc-level-1">
+        <a href="#section-1-6" class="toc-link">
+          <span class="toc-number">1.6 </span>
+          <span class="toc-title">Bernoulli Trials</span>
+        </a>
+      </li>
+      <li class="toc-item toc-level-1">
+        <a href="#section-1-7" class="toc-link">
+          <span class="toc-number">1.7 </span>
+          <span class="toc-title">Random Variables</span>
+        </a>
+      </li>
+      <li class="toc-item toc-level-1">
+        <a href="#section-1-8" class="toc-link">
+          <span class="toc-number">1.8 </span>
+          <span class="toc-title">Expected Value, Variance, and Standard Deviation</span>
+        </a>
+      </li>
+      </ul>
+    </li>
+    <li class="toc-item toc-level-0">
+      <a href="#part-2" class="toc-link">
+        <span class="toc-number"></span>
+        <span class="toc-title">Part 2: Relations</span>
+      </a>
+      <ul class="toc-sublist">
+      <li class="toc-item toc-level-1">
+        <a href="#section-2-1" class="toc-link">
+          <span class="toc-number">2.1 </span>
+          <span class="toc-title">Relation Definitions and Properties</span>
+        </a>
+      </li>
+      <li class="toc-item toc-level-1">
+        <a href="#section-2-2" class="toc-link">
+          <span class="toc-number">2.2 </span>
+          <span class="toc-title">Reflexive, Irreflexive, Symmetric, Antisymmetric, Transitive</span>
+        </a>
+      </li>
+      <li class="toc-item toc-level-1">
+        <a href="#section-2-3" class="toc-link">
+          <span class="toc-number">2.3 </span>
+          <span class="toc-title">Combining Relations</span>
+        </a>
+      </li>
+      <li class="toc-item toc-level-1">
+        <a href="#section-2-4" class="toc-link">
+          <span class="toc-number">2.4 </span>
+          <span class="toc-title">N-ary Relations</span>
+        </a>
+      </li>
+      <li class="toc-item toc-level-1">
+        <a href="#section-2-5" class="toc-link">
+          <span class="toc-number">2.5 </span>
+          <span class="toc-title">SQL-style Operations</span>
+        </a>
+      </li>
+      </ul>
+    </li>
+      </ul>
+    </nav>
+    <main class="document-content">
+      <div class="content-columns">
+        <section class="document-part" id="part-1">
+          <h2 class="part-title">Part 1: Discrete Probability</h2>
+          <section class="academic-section section-level-3" id="section-1-1">
+            <h3 class="section-title">1.1 Probability Basics</h3>
+            <div class="section-content">
+              **Probability Basics**
+
+Key concepts to study:
+• Sample space and events
+• Basic probability rules: P(A) = favorable outcomes / total outcomes
+• Properties: 0 ≤ P(A) ≤ 1, P(S) = 1, P(∅) = 0
+
+*Note: This section requires additional study material as the source document appears to be image-based.*
+
+
+
+            </div>
+          </section>
+
+          <section class="academic-section section-level-3" id="section-1-2">
+            <h3 class="section-title">1.2 Complements and Unions</h3>
+            <div class="section-content">
+              **Complements and Unions**
+
+Key formulas:
+• Complement: P(A&#39;) = 1 - P(A)
+• Union: P(A ∪ B) = P(A) + P(B) - P(A ∩ B)
+• For disjoint events: P(A ∪ B) = P(A) + P(B)
+
+*Note: This section requires additional study material as the source document appears to be image-based.*
+
+
+
+            </div>
+          </section>
+
+          <section class="academic-section section-level-3" id="section-1-3">
+            <h3 class="section-title">1.3 Conditional Probability</h3>
+            <div class="section-content">
+              **Conditional Probability**
+
+Key formula:
+• P(A|B) = P(A ∩ B) / P(B), where P(B) &gt; 0
+
+Important concepts:
+• Conditional probability represents probability of A given B has occurred
+• Multiplication rule: P(A ∩ B) = P(A|B) × P(B)
+
+*Note: This section requires additional study material as the source document appears to be image-based.*
+
+
+
+            </div>
+          </section>
+
+          <section class="academic-section section-level-3" id="section-1-4">
+            <h3 class="section-title">1.4 Bayes&#39; Theorem</h3>
+            <div class="section-content">
+              **Bayes&#39; Theorem**
+
+Bayes&#39; Theorem:
+• P(A|B) = P(B|A) × P(A) / P(B)
+
+Applications:
+• Updating probabilities with new information
+• Medical diagnosis, spam filtering, etc.
+
+*Note: This section requires additional study material as the source document appears to be image-based.*
+
+
+
+            </div>
+          </section>
+
+          <section class="academic-section section-level-3" id="section-1-5">
+            <h3 class="section-title">1.5 Independence</h3>
+            <div class="section-content">
+              **Independence**
+
+Key concepts:
+• Events A and B are independent if P(A ∩ B) = P(A) × P(B)
+• Equivalently: P(A|B) = P(A) and P(B|A) = P(B)
+• Multiplication rule for independent events
+
+*Note: This section requires additional study material as the source document appears to be image-based.*
+
+
+
+            </div>
+          </section>
+
+          <section class="academic-section section-level-3" id="section-1-6">
+            <h3 class="section-title">1.6 Bernoulli Trials</h3>
+            <div class="section-content">
+              **Bernoulli Trials**
+
+Key concepts:
+• Sequence of independent trials with two outcomes (success/failure)
+• Probability of success p remains constant
+• Binomial distribution: P(X = k) = C(n,k) × p^k × (1-p)^(n-k)
+
+*Note: This section requires additional study material as the source document appears to be image-based.*
+
+
+
+            </div>
+          </section>
+
+          <section class="academic-section section-level-3" id="section-1-7">
+            <h3 class="section-title">1.7 Random Variables</h3>
+            <div class="section-content">
+              **Random Variables**
+
+Key concepts:
+• Function that assigns numerical values to outcomes
+• Discrete vs. continuous random variables
+• Probability mass function (PMF) for discrete variables
+• Cumulative distribution function (CDF)
+
+*Note: This section requires additional study material as the source document appears to be image-based.*
+
+
+
+            </div>
+          </section>
+
+          <section class="academic-section section-level-3" id="section-1-8">
+            <h3 class="section-title">1.8 Expected Value, Variance, and Standard Deviation</h3>
+            <div class="section-content">
+              **Expected Value, Variance, and Standard Deviation**
+
+Key formulas:
+• Expected Value: E[X] = Σ x × P(X = x)
+• Variance: Var(X) = E[X²] - (E[X])²
+• Standard Deviation: σ = √Var(X)
+• Properties: E[aX + b] = aE[X] + b, Var(aX + b) = a²Var(X)
+
+*Note: This section requires additional study material as the source document appears to be image-based.*
+
+
+
+            </div>
+          </section>
+        </section>
+
+        <section class="document-part" id="part-2">
+          <h2 class="part-title">Part 2: Relations</h2>
+          <section class="academic-section section-level-3" id="section-2-1">
+            <h3 class="section-title">2.1 Relation Definitions and Properties</h3>
+            <div class="section-content">
+              **Relation Definitions and Properties**
+
+This section covers: relation, ordered pair, cartesian product, domain, range
+
+*Note: Content extraction was limited. Please refer to the original document for complete information.*
+
+
+
+            </div>
+          </section>
+
+          <section class="academic-section section-level-3" id="section-2-2">
+            <h3 class="section-title">2.2 Reflexive, Irreflexive, Symmetric, Antisymmetric, Transitive</h3>
+            <div class="section-content">
+              **Reflexive, Irreflexive, Symmetric, Antisymmetric, Transitive**
+
+This section covers: reflexive, irreflexive, symmetric, antisymmetric, transitive
+
+*Note: Content extraction was limited. Please refer to the original document for complete information.*
+
+
+
+            </div>
+          </section>
+
+          <section class="academic-section section-level-3" id="section-2-3">
+            <h3 class="section-title">2.3 Combining Relations</h3>
+            <div class="section-content">
+              **Combining Relations**
+
+This section covers: composition, inverse, union of relations, intersection of relations
+
+*Note: Content extraction was limited. Please refer to the original document for complete information.*
+
+
+
+            </div>
+          </section>
+
+          <section class="academic-section section-level-3" id="section-2-4">
+            <h3 class="section-title">2.4 N-ary Relations</h3>
+            <div class="section-content">
+              **N-ary Relations**
+
+This section covers: n-ary, ternary, quaternary, tuple
+
+*Note: Content extraction was limited. Please refer to the original document for complete information.*
+
+
+
+            </div>
+          </section>
+
+          <section class="academic-section section-level-3" id="section-2-5">
+            <h3 class="section-title">2.5 SQL-style Operations</h3>
+            <div class="section-content">
+              **SQL-style Operations**
+
+This section covers: sql, select, project, join, relational algebra
+
+*Note: Content extraction was limited. Please refer to the original document for complete information.*
+
+
+
+            </div>
+          </section>
+        </section>
+      </div>
+    </main>
+  </div>
+</body>
+</html>

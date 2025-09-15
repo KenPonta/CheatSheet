@@ -448,6 +448,29 @@ export function StudyMaterialEditor({
         </div>
       </div>
 
+      {/* Editing Guide */}
+      <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-6">
+        <h3 className="font-semibold text-blue-900 mb-2">📝 How to Edit Your Study Guide</h3>
+        <div className="grid md:grid-cols-2 gap-4 text-sm text-blue-800">
+          <div>
+            <p className="font-medium mb-1">✏️ Edit Content:</p>
+            <p>Click the edit icon on any section to modify text, equations, or examples</p>
+          </div>
+          <div>
+            <p className="font-medium mb-1">🔄 Reorder Sections:</p>
+            <p>Drag sections by the grip handle to reorganize your content</p>
+          </div>
+          <div>
+            <p className="font-medium mb-1">➕ Add New Content:</p>
+            <p>Use "Add Section" to insert text, equations, examples, or lists</p>
+          </div>
+          <div>
+            <p className="font-medium mb-1">🎨 Manage Images:</p>
+            <p>Use the Images tab below to regenerate or modify visual content</p>
+          </div>
+        </div>
+      </div>
+
       {/* Content Sections */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">

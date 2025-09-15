@@ -5,9 +5,14 @@ import './globals.css'
 import { MonitoringProvider } from '../components/monitoring-provider'
 
 export const metadata: Metadata = {
-  title: 'Study Material Generator',
-  description: 'Transform your documents into optimized compact study materials with enhanced visual representations',
-  generator: 'Study Material Generator',
+  title: 'CheeseSheet - Smart Study Guide Generator',
+  description: 'Transform your documents into optimized compact study materials with enhanced visual representations and AI-powered content verification',
+  generator: 'CheeseSheet',
+  icons: {
+    icon: '/B1.png',
+    shortcut: '/B1.png',
+    apple: '/B1.png',
+  },
 }
 
 export default function RootLayout({
