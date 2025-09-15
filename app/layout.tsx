@@ -2,11 +2,17 @@ import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { GeistMono } from 'geist/font/mono'
 import './globals.css'
+import { MonitoringProvider } from '../components/monitoring-provider'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
+  title: 'CheeseSheet - Smart Study Guide Generator',
+  description: 'Transform your documents into optimized compact study materials with enhanced visual representations and AI-powered content verification',
+  generator: 'CheeseSheet',
+  icons: {
+    icon: '/B1.png',
+    shortcut: '/B1.png',
+    apple: '/B1.png',
+  },
 }
 
 export default function RootLayout({
@@ -25,7 +31,11 @@ html {
 }
         `}</style>
       </head>
-      <body>{children}</body>
+      <body>
+        <MonitoringProvider>
+          {children}
+        </MonitoringProvider>
+      </body>
     </html>
   )
 }

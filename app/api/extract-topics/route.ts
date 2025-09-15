@@ -1,163 +1,407 @@
 import { type NextRequest, NextResponse } from "next/server"
-
-// Mock topic extraction function - in a real app, this would use AI/ML services
-function extractTopicsFromText(
-  text: string,
-  fileName: string,
-): { topic: string; content: string; confidence: number }[] {
-  // Simple keyword-based topic extraction for demo purposes
-  const topics = []
-
-  // Common academic/professional topics
-  const topicPatterns = [
-    { pattern: /\b(introduction|overview|summary)\b/gi, topic: "Introduction & Overview" },
-    { pattern: /\b(method|methodology|approach|process)\b/gi, topic: "Methods & Processes" },
-    { pattern: /\b(result|finding|outcome|conclusion)\b/gi, topic: "Results & Conclusions" },
-    { pattern: /\b(definition|concept|theory|principle)\b/gi, topic: "Key Concepts & Definitions" },
-    { pattern: /\b(formula|equation|calculation|math)\b/gi, topic: "Formulas & Calculations" },
-    { pattern: /\b(example|case study|illustration)\b/gi, topic: "Examples & Case Studies" },
-    { pattern: /\b(advantage|benefit|pro|strength)\b/gi, topic: "Advantages & Benefits" },
-    { pattern: /\b(disadvantage|limitation|con|weakness)\b/gi, topic: "Limitations & Challenges" },
-    { pattern: /\b(step|procedure|instruction|guide)\b/gi, topic: "Steps & Procedures" },
-    { pattern: /\b(important|key|critical|essential)\b/gi, topic: "Key Points" },
-  ]
-
-  // Extract topics based on patterns
-  topicPatterns.forEach(({ pattern, topic }) => {
-    const matches = text.match(pattern)
-    if (matches && matches.length > 0) {
-      const sentences = text.split(/[.!?]+/).filter((sentence) => pattern.test(sentence) && sentence.trim().length > 20)
-
-      if (sentences.length > 0) {
-        topics.push({
-          topic,
-          content: sentences.slice(0, 3).join(". ").trim() + ".",
-          confidence: Math.min(0.9, 0.3 + matches.length * 0.1),
-        })
-      }
-    }
-  })
-
-  // If no specific topics found, create generic ones based on content length
-  if (topics.length === 0) {
-    const sentences = text.split(/[.!?]+/).filter((s) => s.trim().length > 10)
-    if (sentences.length > 0) {
-      topics.push({
-        topic: `Main Content from ${fileName}`,
-        content: sentences.slice(0, 5).join(". ").trim() + ".",
-        confidence: 0.7,
-      })
-    }
-  }
-
-  return topics.slice(0, 8) // Limit to 8 topics max
-}
-
-function extractTopicsFromFileName(fileName: string): { topic: string; content: string; confidence: number }[] {
-  // Extract potential topics from file name
-  const nameWithoutExt = fileName.replace(/\.[^/.]+$/, "")
-  const words = nameWithoutExt.split(/[-_\s]+/).filter((word) => word.length > 2)
-
-  if (words.length > 0) {
-    return [
-      {
-        topic: `File Overview: ${words.join(" ")}`,
-        content: `This document appears to cover topics related to: ${words.join(", ")}.`,
-        confidence: 0.5,
-      },
-    ]
-  }
-
-  return []
-}
+import { FileProcessing } from "@/backend/lib/file-processing"
+import { createCPUOptimizedProcessor } from "@/backend/lib/file-processing/cpu-optimized-processor"
+import { getTopicExtractionService, getAIContentService, getSpaceCalculationService } from "@/backend/lib/ai"
+import type { ExtractedContent, OrganizedTopic, SpaceConstraints, ReferenceFormatAnalysis } from "@/backend/lib/ai/types"
 
 export async function POST(request: NextRequest) {
+  console.log('🚀 API Route: Starting file processing...');
+  
   try {
     const formData = await request.formData()
     const files = formData.getAll("files") as File[]
 
+    console.log(`📁 Received ${files.length} files:`, files.map(f => ({ name: f.name, size: f.size, type: f.type })));
+
     if (!files || files.length === 0) {
+      console.log('❌ No files provided');
       return NextResponse.json({ error: "No files provided" }, { status: 400 })
     }
 
-    const allTopics: { topic: string; content: string; confidence: number; source: string }[] = []
-
-    for (const file of files) {
-      let extractedTopics: { topic: string; content: string; confidence: number }[] = []
-
-      if (file.type === "text/plain") {
-        // Handle text files
-        const text = await file.text()
-        extractedTopics = extractTopicsFromText(text, file.name)
-      } else if (file.type === "application/pdf") {
-        // Mock PDF processing - in real app, would use PDF parsing library
-        extractedTopics = [
-          {
-            topic: "PDF Document Analysis",
-            content: "This PDF document contains structured information that can be extracted for study purposes.",
-            confidence: 0.8,
-          },
-          ...extractTopicsFromFileName(file.name),
-        ]
-      } else if (file.type.includes("word") || file.type.includes("document")) {
-        // Mock Word document processing
-        extractedTopics = [
-          {
-            topic: "Document Structure",
-            content:
-              "This Word document contains formatted text with headings, paragraphs, and potentially tables or lists.",
-            confidence: 0.8,
-          },
-          ...extractTopicsFromFileName(file.name),
-        ]
-      } else if (file.type.includes("presentation") || file.type.includes("powerpoint")) {
-        // Mock PowerPoint processing
-        extractedTopics = [
-          {
-            topic: "Presentation Slides",
-            content:
-              "This presentation contains slides with key points, bullet lists, and visual elements for learning.",
-            confidence: 0.8,
-          },
-          ...extractTopicsFromFileName(file.name),
-        ]
-      } else if (file.type.startsWith("image/")) {
-        // Mock image processing - in real app, would use OCR
-        extractedTopics = [
-          {
-            topic: "Visual Content",
-            content:
-              "This image may contain text, diagrams, or visual information that can be extracted for study purposes.",
-            confidence: 0.6,
-          },
-          ...extractTopicsFromFileName(file.name),
-        ]
-      } else {
-        // Fallback for unknown file types
-        extractedTopics = extractTopicsFromFileName(file.name)
-      }
-
-      // Add source information and add to all topics
-      extractedTopics.forEach((topic) => {
-        allTopics.push({
-          ...topic,
-          source: file.name,
-        })
+    // Validate files before processing
+    console.log('🔍 Starting file validation...');
+    const validationResults = await Promise.all(
+      files.map(file => {
+        console.log(`🔍 Validating file: ${file.name}`);
+        return FileProcessing.validate(file);
       })
+    )
+
+    console.log('✅ Validation completed:', validationResults.map(r => ({ 
+      isValid: r.isValid, 
+      errors: r.errors,
+      fileType: r.fileType 
+    })));
+
+    const invalidFiles = validationResults.filter(result => !result.isValid)
+    if (invalidFiles.length > 0) {
+      console.log('Validation failed for files:', invalidFiles.map(r => ({
+        fileName: r.fileName || 'unknown',
+        errors: r.errors,
+        suggestions: r.suggestions
+      })))
+      
+      // Create detailed error message for legacy Office files
+      const legacyOfficeFiles = invalidFiles.filter(result => {
+        const fileName = result.fileName || '';
+        return fileName.endsWith('.doc') || fileName.endsWith('.ppt') || fileName.endsWith('.xls')
+      })
+      
+      let errorMessage = '';
+      if (legacyOfficeFiles.length > 0) {
+        const legacyNames = legacyOfficeFiles.map(r => r.fileName).join(', ')
+        errorMessage = `Legacy Office files detected (${legacyNames}). Please save as .docx, .pptx, or .xlsx formats.`
+      } else {
+        errorMessage = `${invalidFiles.length} file(s) failed validation. Check file formats are supported and files are not corrupted.`
+      }
+      
+      const validationDetails = invalidFiles.map(result => ({
+        fileName: result.fileName,
+        errors: result.errors,
+        suggestions: result.suggestions
+      }))
+      
+      return NextResponse.json({
+        error: "Invalid files detected",
+        details: errorMessage,
+        validationDetails
+      }, { status: 400 })
     }
 
-    // Remove duplicates and sort by confidence
-    const uniqueTopics = allTopics
-      .filter((topic, index, self) => index === self.findIndex((t) => t.topic === topic.topic))
-      .sort((a, b) => b.confidence - a.confidence)
+    // Force garbage collection before processing
+    if (global.gc) {
+      global.gc()
+    }
+    
+    let processingResults;
+    
+    // Try CPU-optimized processing first, fallback to standard processing
+    try {
+      console.log('🔧 Attempting CPU-optimized processing...');
+      console.log('📁 Files to process:', files.map(f => ({ name: f.name, type: f.type, size: f.size })));
+      
+      const cpuProcessor = createCPUOptimizedProcessor({
+        chunkSize: 32 * 1024, // 32KB chunks for very low memory usage
+        maxMemoryUsage: 100 * 1024 * 1024, // 100MB max memory
+        useDiskBuffer: false, // Disable disk buffer for compatibility
+        enableStreaming: true
+      });
 
-    return NextResponse.json({
-      topics: uniqueTopics,
+      try {
+        console.log('🔄 Processing files sequentially...');
+        // Process files sequentially to minimize memory usage
+        const cpuResults = await cpuProcessor.processMultipleFilesSequential(files);
+        
+        console.log('📊 CPU processing results:', cpuResults.map(r => ({ 
+          fileName: r.fileName, 
+          success: r.success, 
+          error: r.error,
+          contentLength: r.content?.length 
+        })));
+        
+        // Log detailed error information for failed files
+        const failedResults = cpuResults.filter(result => !result.success);
+        if (failedResults.length > 0) {
+          console.log('❌ Failed CPU processing details:');
+          failedResults.forEach(result => {
+            console.log(`  - ${result.fileName}: ${result.error}`);
+          });
+        }
+        
+        // Check if any files were successfully processed
+        const successfulResults = cpuResults.filter(result => result.success);
+        
+        if (successfulResults.length === 0) {
+          console.log('❌ CPU-optimized processing failed for all files');
+          const allErrors = failedResults.map(r => `${r.fileName}: ${r.error}`).join('; ');
+          throw new Error(`CPU-optimized processing failed for all files: ${allErrors}`);
+        }
+        
+        // Convert CPU processor results to expected format
+        processingResults = cpuResults.map((result, index) => ({
+          fileName: result.fileName,
+          success: result.success,
+          content: result.success ? {
+            text: result.content || '',
+            images: [], // Images disabled for memory efficiency
+            tables: [],
+            metadata: {
+              name: result.fileName,
+              size: files[index]?.size || 0,
+              type: files[index]?.type || 'unknown',
+              lastModified: files[index]?.lastModified ? new Date(files[index].lastModified) : new Date(),
+              wordCount: result.metadata?.wordCount || 0,
+              ...(result.metadata || {})
+            },
+            structure: { 
+              headings: [], 
+              sections: [],
+              hierarchy: 0
+            }
+          } : undefined,
+          error: result.error,
+          processingTime: result.processingTime
+        }));
+        
+        console.log(`CPU-optimized processing succeeded for ${successfulResults.length}/${files.length} files`);
+      } finally {
+        cpuProcessor.cleanup();
+      }
+    } catch (cpuError) {
+      console.warn('⚠️  CPU-optimized processing failed, falling back to standard processing:', cpuError.message);
+      console.warn('Stack trace:', cpuError.stack);
+      
+      // Fallback to standard file processing
+      try {
+        console.log('🔄 Attempting standard file processing...');
+        const standardResults = await FileProcessing.processMultipleFilesEnhanced(files, {
+          enableOCR: false, // Disable OCR to save memory
+          preserveFormatting: false, // Disable formatting to save memory
+          extractImages: false, // Disable images to save memory
+          enableProgressTracking: false // Disable progress tracking to save memory
+        });
+        
+        console.log('📊 Standard processing results:', standardResults.map(r => ({ 
+          fileName: r.fileName, 
+          success: r.success, 
+          error: r.error 
+        })));
+        
+        processingResults = standardResults;
+        console.log(`✅ Standard processing succeeded for ${standardResults.filter(r => r.success).length}/${files.length} files`);
+      } catch (standardError) {
+        console.error('❌ Both CPU-optimized and standard processing failed:', standardError);
+        console.error('Standard error stack:', standardError.stack);
+        
+        // If memory management is causing issues, try one more time without it
+        if (standardError.message.includes('memory') || standardError.message.includes('Memory')) {
+          console.log('🔄 Attempting processing without memory management...');
+          try {
+            const noMemoryResults = await FileProcessing.processMultipleFilesEnhanced(files, {
+              enableOCR: false,
+              preserveFormatting: false,
+              extractImages: false,
+              enableProgressTracking: false,
+              manageMemory: false // Disable memory management
+            });
+            
+            processingResults = noMemoryResults;
+            console.log(`✅ Processing without memory management succeeded for ${noMemoryResults.filter(r => r.success).length}/${files.length} files`);
+          } catch (finalError) {
+            console.error('❌ All processing attempts failed:', finalError);
+            throw new Error(`File processing failed: ${finalError.message}`);
+          }
+        } else {
+          throw new Error(`File processing failed: ${standardError.message}`);
+        }
+      }
+    }
+
+    // Check for processing errors
+    const failedProcessing = processingResults.filter(result => !result.success)
+    if (failedProcessing.length > 0) {
+      console.warn("Some files failed to process:", failedProcessing.map(r => ({
+        fileName: r.fileName,
+        error: r.error
+      })))
+    }
+
+    // Extract successful content
+    const extractedContents: ExtractedContent[] = processingResults
+      .filter(result => result.success && result.content)
+      .map(result => ({
+        ...result.content!,
+        sourceFile: result.fileName
+      }))
+
+    if (extractedContents.length === 0) {
+      console.log("No content extracted. Processing results:", processingResults.map(r => ({
+        fileName: r.fileName,
+        success: r.success,
+        error: r.error
+      })))
+      
+      const failureDetails = processingResults.map(result => ({
+        fileName: result.fileName,
+        success: result.success,
+        error: result.error
+      }))
+      
+      // Create more specific error message
+      let errorMessage = `Failed to process ${failedProcessing.length} file(s). Check file formats and ensure files are not corrupted.`
+      
+      // Check if any files have specific error patterns
+      const hasUnsupportedFormat = failedProcessing.some(result => 
+        result.error && result.error.includes('unsupported') || result.error && result.error.includes('format')
+      )
+      
+      if (hasUnsupportedFormat) {
+        errorMessage = "Unsupported file format detected. Please use supported formats: PDF, Word (.docx), PowerPoint (.pptx), Excel (.xlsx), Text (.txt), or Images."
+      }
+      
+      return NextResponse.json({
+        error: "No content could be extracted from the provided files",
+        details: errorMessage,
+        failureDetails
+      }, { status: 400 })
+    }
+
+    // Get space constraints from request if provided
+    const spaceConstraintsParam = formData.get("spaceConstraints") as string;
+    const referenceAnalysisParam = formData.get("referenceAnalysis") as string;
+    
+    let spaceConstraints: SpaceConstraints | undefined;
+    let referenceAnalysis: ReferenceFormatAnalysis | undefined;
+    
+    if (spaceConstraintsParam) {
+      try {
+        spaceConstraints = JSON.parse(spaceConstraintsParam);
+      } catch (e) {
+        console.warn("Invalid space constraints JSON, using default extraction");
+      }
+    }
+    
+    if (referenceAnalysisParam) {
+      try {
+        referenceAnalysis = JSON.parse(referenceAnalysisParam);
+      } catch (e) {
+        console.warn("Invalid reference analysis JSON, ignoring");
+      }
+    }
+
+    // Use AI service to extract and organize topics with space awareness
+    console.log('🤖 Starting space-aware topic extraction...');
+    console.log(`📊 Extracted contents: ${extractedContents.length} items`);
+    
+    const aiService = getAIContentService();
+    const spaceService = getSpaceCalculationService();
+    console.log('✅ AI and space services obtained');
+    
+    let organizedTopics: OrganizedTopic[];
+    let spaceOptimization: any = null;
+    
+    if (spaceConstraints) {
+      console.log('🎯 Using space-aware extraction with constraints:', spaceConstraints);
+      
+      // Calculate available space
+      const availableSpace = spaceService.calculateAvailableSpace(spaceConstraints);
+      console.log(`📏 Available space calculated: ${availableSpace} characters`);
+      
+      // Extract topics with space constraints
+      organizedTopics = await aiService.extractTopicsWithSpaceConstraints(
+        extractedContents,
+        spaceConstraints,
+        referenceAnalysis
+      );
+      
+      // Optimize space utilization
+      spaceOptimization = aiService.optimizeSpaceUtilization(
+        organizedTopics,
+        availableSpace,
+        referenceAnalysis
+      );
+      
+      console.log(`✅ Space-aware topic extraction completed: ${organizedTopics.length} topics with optimization`);
+    } else {
+      console.log('📝 Using standard topic extraction');
+      const topicService = getTopicExtractionService();
+      organizedTopics = await topicService.extractTopics(extractedContents);
+      console.log(`✅ Standard topic extraction completed: ${organizedTopics.length} topics`);
+    }
+
+    // Convert to enhanced frontend format with priority and space information
+    const formattedTopics = organizedTopics.map((topic, index) => ({
+      id: topic.id || `topic-${index}`,
+      topic: topic.title,
+      content: topic.content,
+      confidence: topic.confidence,
+      source: topic.sourceFiles.join(", "),
+      subtopics: topic.subtopics.map(sub => ({
+        ...sub,
+        isSelected: sub.priority === 'high' // Auto-select high priority subtopics
+      })),
+      examples: topic.examples,
+      originalWording: topic.originalWording,
+      selected: topic.priority === 'high', // Auto-select high priority topics
+      originalContent: topic.content,
+      isModified: false,
+      priority: topic.priority || 'medium',
+      estimatedSpace: topic.estimatedSpace || Math.ceil(topic.content.length * 1.2)
+    }))
+
+    // Get processing statistics
+    const stats = FileProcessing.getStats()
+
+    // Prepare response with enhanced space-aware information
+    const response: any = {
+      topics: formattedTopics,
       totalFiles: files.length,
-      message: `Successfully extracted ${uniqueTopics.length} topics from ${files.length} file(s)`,
-    })
+      successfulFiles: extractedContents.length,
+      failedFiles: failedProcessing.length,
+      processingStats: {
+        totalProcessingTime: processingResults.reduce((sum, r) => sum + (r.processingTime || 0), 0),
+        cacheHits: stats.cacheHits,
+        memoryUsage: stats.memoryUsage
+      },
+      message: `Successfully extracted ${formattedTopics.length} topics from ${extractedContents.length} file(s)`,
+      warnings: failedProcessing.map(result => ({
+        fileName: result.fileName,
+        error: result.error,
+        suggestion: FileProcessing.getUserFriendlyError(result.error || "Unknown error")
+      }))
+    };
+
+    // Add space optimization results if available
+    if (spaceOptimization && spaceConstraints) {
+      const spaceService = getSpaceCalculationService();
+      const availableSpace = spaceService.calculateAvailableSpace(spaceConstraints);
+      
+      response.spaceOptimization = {
+        availableSpace,
+        optimization: spaceOptimization,
+        constraints: spaceConstraints,
+        utilizationInfo: spaceService.calculateSpaceUtilization(
+          spaceOptimization.recommendedTopics.map((topicId: string) => {
+            const topic = organizedTopics.find(t => t.id === topicId);
+            const subtopicSelection = spaceOptimization.recommendedSubtopics.find((rs: any) => rs.topicId === topicId);
+            return {
+              topicId,
+              subtopicIds: subtopicSelection?.subtopicIds || [],
+              priority: topic?.priority || 'medium',
+              estimatedSpace: topic?.estimatedSpace || 0
+            };
+          }),
+          availableSpace,
+          organizedTopics
+        )
+      };
+      
+      response.message += ` with space optimization (${Math.round(response.spaceOptimization.utilizationInfo.utilizationPercentage * 100)}% utilization)`;
+    }
+
+    return NextResponse.json(response)
   } catch (error) {
     console.error("Topic extraction error:", error)
-    return NextResponse.json({ error: "Failed to extract topics from files" }, { status: 500 })
+    
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    let userFriendlyMessage = "Failed to extract topics from files"
+    
+    // Handle memory-related errors
+    if (errorMessage.includes('Memory usage') || errorMessage.includes('memory') || errorMessage.includes('exceed')) {
+      userFriendlyMessage = "The file is too large for current memory constraints. Try uploading smaller files or fewer files at once."
+    }
+    // Handle file format errors
+    else if (errorMessage.includes('Unsupported') || errorMessage.includes('format')) {
+      userFriendlyMessage = "Unsupported file format detected. Please use supported formats: PDF, Word (.docx), PowerPoint (.pptx), Excel (.xlsx), Text (.txt), or Images."
+    }
+    // Handle processing errors
+    else if (errorMessage.includes('process') || errorMessage.includes('extract')) {
+      userFriendlyMessage = "Unable to process the uploaded files. Please check that files are not corrupted and try again."
+    }
+    
+    return NextResponse.json({ 
+      error: "Failed to extract topics from files",
+      details: userFriendlyMessage
+    }, { status: 500 })
   }
 }
