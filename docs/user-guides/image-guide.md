@@ -2,7 +2,7 @@
 
 ## Overview
 
-The cheat sheet generator uses advanced OCR (Optical Character Recognition) technology to extract text from images, making handwritten notes, screenshots, and scanned documents searchable and editable.
+The study material generator uses advanced OCR (Optical Character Recognition) technology to extract text from images, making handwritten notes, screenshots, and scanned documents searchable and editable.
 
 ## Supported Image Formats
 

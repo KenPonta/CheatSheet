@@ -5,17 +5,17 @@ import { getImageRecreationService } from '@/backend/lib/ai';
 import type { ImageRecreationResult, ExtractedImage } from '@/backend/lib/ai/types';
 
 // Mock the image recreation service
-jest.mock('@/lib/ai', () => ({
-  getImageRecreationService: jest.fn()
+const mockRecreateImages = jest.fn();
+const mockCreateApprovalWorkflow = jest.fn();
+
+jest.mock('@/backend/lib/ai', () => ({
+  getImageRecreationService: jest.fn(() => ({
+    recreateImages: mockRecreateImages,
+    createApprovalWorkflow: mockCreateApprovalWorkflow
+  }))
 }));
 
-const mockGetImageRecreationService = getImageRecreationService as jest.MockedFunction<typeof getImageRecreationService>;
-
 describe('/api/recreate-images', () => {
-  let mockService: {
-    recreateImages: jest.MockedFunction<any>;
-    createApprovalWorkflow: jest.MockedFunction<any>;
-  };
 
   const mockExtractedImage: ExtractedImage = {
     id: 'test-image-1',
@@ -29,15 +29,22 @@ describe('/api/recreate-images', () => {
     originalImage: mockExtractedImage,
     generatedImage: {
       id: 'gen-1',
-      url: 'https://example.com/generated.png',
-      base64: 'data:image/png;base64,generated',
+      url: 'data:image/svg+xml;base64,generated',
+      base64: 'data:image/svg+xml;base64,generated',
       prompt: 'Clean mathematical formula',
       style: 'formula',
       generationTime: 2000,
       metadata: {
-        model: 'dall-e-3',
-        size: '512x512',
-        quality: 'standard'
+        model: 'simple-flat-line-generator',
+        size: '1024x1024',
+        quality: 'standard',
+        flatLineType: 'equation',
+        flatLineStyle: {
+          lineWeight: 'medium',
+          colorScheme: 'monochrome',
+          layout: 'horizontal',
+          annotations: false
+        }
       }
     },
     qualityAssessment: {
@@ -59,13 +66,6 @@ describe('/api/recreate-images', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    
-    mockService = {
-      recreateImages: jest.fn(),
-      createApprovalWorkflow: jest.fn()
-    };
-
-    mockGetImageRecreationService.mockReturnValue(mockService as any);
   });
 
   describe('POST /api/recreate-images', () => {
@@ -75,8 +75,8 @@ describe('/api/recreate-images', () => {
         options: {}
       };
 
-      mockService.recreateImages.mockResolvedValue([mockRecreationResult]);
-      mockService.createApprovalWorkflow.mockReturnValue({
+      mockRecreateImages.mockResolvedValue([mockRecreationResult]);
+      mockCreateApprovalWorkflow.mockReturnValue({
         imageId: 'test-image-1',
         originalImage: mockExtractedImage,
         recreatedImage: mockRecreationResult.generatedImage,
@@ -104,7 +104,7 @@ describe('/api/recreate-images', () => {
       expect(data.summary.needsApproval).toBe(1);
       expect(data.summary.autoApproved).toBe(0);
       expect(data.approvalWorkflows).toHaveLength(1);
-      expect(mockService.recreateImages).toHaveBeenCalledWith([mockExtractedImage]);
+      expect(mockRecreateImages).toHaveBeenCalledWith([mockExtractedImage]);
     });
 
     it('should handle multiple images with mixed results', async () => {
@@ -123,8 +123,8 @@ describe('/api/recreate-images', () => {
         }
       ];
 
-      mockService.recreateImages.mockResolvedValue(results);
-      mockService.createApprovalWorkflow.mockReturnValue({
+      mockRecreateImages.mockResolvedValue(results);
+      mockCreateApprovalWorkflow.mockReturnValue({
         imageId: 'test-image-1',
         originalImage: mockExtractedImage,
         recreatedImage: mockRecreationResult.generatedImage,
@@ -197,7 +197,7 @@ describe('/api/recreate-images', () => {
     });
 
     it('should handle service errors gracefully', async () => {
-      mockService.recreateImages.mockRejectedValue(new Error('Service unavailable'));
+      mockRecreateImages.mockRejectedValue(new Error('Service unavailable'));
 
       const request = new NextRequest('http://localhost:3000/api/recreate-images', {
         method: 'POST',
@@ -233,7 +233,7 @@ describe('/api/recreate-images', () => {
         { ...mockRecreationResult, processingTime: 2000, userApprovalRequired: false }
       ];
 
-      mockService.recreateImages.mockResolvedValue(results);
+      mockRecreateImages.mockResolvedValue(results);
 
       const request = new NextRequest('http://localhost:3000/api/recreate-images', {
         method: 'POST',
@@ -294,7 +294,7 @@ describe('/api/recreate-images', () => {
 
   describe('Edge cases and error handling', () => {
     it('should handle empty images array', async () => {
-      mockService.recreateImages.mockResolvedValue([]);
+      mockRecreateImages.mockResolvedValue([]);
 
       const request = new NextRequest('http://localhost:3000/api/recreate-images', {
         method: 'POST',
@@ -319,7 +319,7 @@ describe('/api/recreate-images', () => {
         userApprovalRequired: false
       };
 
-      mockService.recreateImages.mockResolvedValue([resultWithoutGenerated]);
+      mockRecreateImages.mockResolvedValue([resultWithoutGenerated]);
 
       const request = new NextRequest('http://localhost:3000/api/recreate-images', {
         method: 'POST',
@@ -337,7 +337,7 @@ describe('/api/recreate-images', () => {
     });
 
     it('should handle service returning null/undefined', async () => {
-      mockService.recreateImages.mockResolvedValue(null);
+      mockRecreateImages.mockResolvedValue(null);
 
       const request = new NextRequest('http://localhost:3000/api/recreate-images', {
         method: 'POST',

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The cheat sheet generator processes Excel spreadsheets (.xlsx format) to extract data, formulas, charts, and table structures for inclusion in your study materials.
+The study material generator processes Excel spreadsheets (.xlsx format) to extract data, formulas, charts, and table structures for inclusion in your compact study materials.
 
 ## Supported Formats
 

@@ -1,5 +1,6 @@
 import { getOpenAIClient } from './client';
 import { PromptTemplates } from './prompts';
+import { SimpleImageGenerator, FlatLineImageRequest, FlatLineStyle, ImageDimensions } from './simple-image-generator';
 import {
   ExtractedImage,
   ImageGenerationRequest,
@@ -13,14 +14,15 @@ import {
 
 export class ImageRecreationService {
   private client = getOpenAIClient();
+  private simpleImageGenerator = new SimpleImageGenerator();
   private maxRetries = 2;
 
   /**
-   * Analyze image context to determine if recreation is needed
+   * Analyze image context to determine if recreation is needed and appropriate flat-line visualization type
    */
   async analyzeImageContext(image: ExtractedImage): Promise<ImageContextAnalysis> {
     try {
-      const prompt = PromptTemplates.createImageRecreationAnalysisPrompt(
+      const prompt = this.createFlatLineAnalysisPrompt(
         image.context,
         image.ocrText || '',
         image.isExample
@@ -29,7 +31,7 @@ export class ImageRecreationService {
       const response = await this.client.createChatCompletion([
         {
           role: 'system',
-          content: 'You are an expert in educational visual content analysis. Determine if images need recreation for cheat sheets.'
+          content: 'You are an expert in educational visual content analysis. Determine if images need recreation as simple flat-line visualizations and what type would be most appropriate.'
         },
         {
           role: 'user',
@@ -46,7 +48,7 @@ export class ImageRecreationService {
       return {
         needsRecreation: parsed.needsRecreation || false,
         recreationReason: parsed.recreationReason || '',
-        contentType: parsed.contentType || 'other',
+        contentType: this.mapToFlatLineType(parsed.contentType || 'other'),
         educationalValue: parsed.educationalValue || 'low',
         complexity: parsed.complexity || 'moderate',
         extractedElements: parsed.extractedElements || [],
@@ -66,58 +68,45 @@ export class ImageRecreationService {
   }
 
   /**
-   * Generate a new image based on the analysis and context
+   * Generate a new image using SimpleImageGenerator based on the analysis and context
    */
   async generateImage(request: ImageGenerationRequest): Promise<GeneratedImage> {
     const startTime = Date.now();
     
     try {
-      // Create optimized prompt for DALL-E
-      const optimizedPrompt = this.optimizePromptForGeneration(
-        request.description,
-        request.style,
-        request.context
-      );
+      // Create flat-line image request
+      const flatLineRequest: FlatLineImageRequest = {
+        type: this.mapStyleToFlatLineType(request.style),
+        content: request.description,
+        context: request.context,
+        style: this.createFlatLineStyle(request.style, request.quality),
+        dimensions: this.mapSizeToFlatLineDimensions(request.size)
+      };
 
-      const response = await this.client.client.images.generate({
-        model: 'dall-e-3',
-        prompt: optimizedPrompt,
-        size: request.size || '1024x1024',
-        quality: request.quality || 'standard',
-        n: 1,
-        response_format: 'url'
-      });
+      const generatedImage = await this.simpleImageGenerator.generateFlatLineImage(flatLineRequest);
 
-      const imageData = response.data[0];
-      if (!imageData?.url) {
-        throw new AIServiceError('No image generated', {
-          code: 'IMAGE_GENERATION_FAILED',
-          retryable: true
-        });
-      }
-
-      // Convert URL to base64 for storage
-      const base64 = await this.urlToBase64(imageData.url);
-
+      // Convert to the expected GeneratedImage format for backward compatibility
       return {
-        id: `generated_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        url: imageData.url,
-        base64,
-        prompt: optimizedPrompt,
+        id: generatedImage.id,
+        url: generatedImage.base64, // Use base64 as URL for flat-line images
+        base64: generatedImage.base64,
+        prompt: request.description,
         style: request.style,
         generationTime: Date.now() - startTime,
         metadata: {
-          model: 'dall-e-3',
-          size: request.size || '1024x1024',
+          model: 'simple-flat-line-generator',
+          size: `${generatedImage.dimensions.width}x${generatedImage.dimensions.height}`,
           quality: request.quality || 'standard',
-          revisedPrompt: imageData.revised_prompt
+          revisedPrompt: request.description,
+          flatLineType: flatLineRequest.type,
+          flatLineStyle: flatLineRequest.style
         }
       };
     } catch (error) {
       if (error instanceof AIServiceError) {
         throw error;
       }
-      throw new AIServiceError(`Image generation failed: ${error.message}`, {
+      throw new AIServiceError(`Flat-line image generation failed: ${error.message}`, {
         code: 'IMAGE_GENERATION_FAILED',
         retryable: true,
         details: error
@@ -313,57 +302,127 @@ export class ImageRecreationService {
   }
 
   /**
-   * Optimize prompt for DALL-E generation
+   * Create flat-line analysis prompt for determining visualization type
    */
-  private optimizePromptForGeneration(
-    description: string,
-    style: string,
-    context: string
-  ): string {
-    const stylePrompts = {
-      diagram: 'Clean, simple diagram with clear labels and minimal colors. Educational style, black lines on white background.',
-      example: 'Clear example problem or solution, step-by-step format, easy to read text and numbers.',
-      chart: 'Simple chart or graph with clear axes, labels, and data points. Professional educational style.',
-      illustration: 'Simple, clear illustration for educational purposes. Minimal colors, clean lines.',
-      formula: 'Mathematical formula or equation, clearly written with proper notation.'
-    };
+  private createFlatLineAnalysisPrompt(context: string, ocrText: string, isExample: boolean): string {
+    return `
+Analyze this educational content to determine if it should be recreated as a simple flat-line visualization:
 
-    const basePrompt = `${description}. ${stylePrompts[style] || stylePrompts.diagram}`;
-    
-    // Add context if it provides useful information
-    const contextInfo = context.length > 0 && context.length < 200 
-      ? ` Context: ${context}` 
-      : '';
-    
-    return `${basePrompt}${contextInfo}. High contrast, suitable for printing in black and white.`;
+Context: ${context}
+OCR Text: ${ocrText}
+Is Example: ${isExample}
+
+Determine:
+1. Does this content benefit from a simple flat-line visual representation?
+2. What type of flat-line visualization would be most appropriate?
+3. What are the key elements that should be visualized?
+
+Available flat-line visualization types:
+- equation: Mathematical formulas and equations
+- concept: Concept diagrams, flowcharts, hierarchies
+- example: Step-by-step problem solutions
+- diagram: Generic diagrams and illustrations
+
+Return JSON with:
+{
+  "needsRecreation": boolean,
+  "recreationReason": "string explaining why recreation is beneficial",
+  "contentType": "equation|concept|example|diagram|other",
+  "educationalValue": "high|medium|low",
+  "complexity": "simple|moderate|complex",
+  "extractedElements": ["list of key elements to visualize"],
+  "generationPrompt": "optimized description for flat-line generation"
+}
+    `;
   }
 
   /**
-   * Convert image URL to base64
+   * Map content type to flat-line visualization type
    */
-  private async urlToBase64(url: string): Promise<string> {
-    try {
-      const response = await fetch(url);
-      const buffer = await response.arrayBuffer();
-      const base64 = Buffer.from(buffer).toString('base64');
-      return `data:image/png;base64,${base64}`;
-    } catch (error) {
-      console.warn('Failed to convert URL to base64:', error);
-      return '';
+  private mapToFlatLineType(contentType: string): 'diagram' | 'example' | 'chart' | 'formula' | 'illustration' | 'text' | 'other' {
+    const mapping: Record<string, 'diagram' | 'example' | 'chart' | 'formula' | 'illustration' | 'text' | 'other'> = {
+      'equation': 'formula',
+      'concept': 'diagram',
+      'example': 'example',
+      'diagram': 'diagram',
+      'chart': 'chart',
+      'illustration': 'illustration',
+      'formula': 'formula',
+      'text': 'text'
+    };
+    
+    return mapping[contentType] || 'other';
+  }
+
+  /**
+   * Map style to flat-line image type
+   */
+  private mapStyleToFlatLineType(style: string): 'equation' | 'concept' | 'example' | 'diagram' {
+    const mapping: Record<string, 'equation' | 'concept' | 'example' | 'diagram'> = {
+      'diagram': 'diagram',
+      'example': 'example',
+      'chart': 'diagram',
+      'illustration': 'concept',
+      'formula': 'equation'
+    };
+    
+    return mapping[style] || 'diagram';
+  }
+
+  /**
+   * Create flat-line style based on original request parameters
+   */
+  private createFlatLineStyle(style: string, quality?: string): FlatLineStyle {
+    const baseStyle: FlatLineStyle = {
+      lineWeight: quality === 'hd' ? 'medium' : 'thin',
+      colorScheme: 'monochrome',
+      layout: 'horizontal',
+      annotations: true
+    };
+
+    // Adjust style based on content type
+    switch (style) {
+      case 'diagram':
+        return { ...baseStyle, layout: 'grid' };
+      case 'example':
+        return { ...baseStyle, layout: 'vertical', annotations: true };
+      case 'chart':
+        return { ...baseStyle, layout: 'grid', lineWeight: 'medium' };
+      case 'formula':
+        return { ...baseStyle, layout: 'horizontal', annotations: false };
+      default:
+        return baseStyle;
     }
   }
 
   /**
-   * Select optimal image size based on complexity
+   * Map size to flat-line dimensions
    */
-  private selectOptimalSize(complexity: string): '256x256' | '512x512' | '1024x1024' {
+  private mapSizeToFlatLineDimensions(size?: string): ImageDimensions {
+    const sizeMapping: Record<string, ImageDimensions> = {
+      '256x256': { width: 256, height: 256 },
+      '512x512': { width: 512, height: 512 },
+      '1024x1024': { width: 1024, height: 1024 },
+      '1024x1792': { width: 1024, height: 1792 },
+      '1792x1024': { width: 1792, height: 1024 }
+    };
+    
+    return sizeMapping[size || '1024x1024'] || { width: 1024, height: 1024 };
+  }
+
+
+
+  /**
+   * Select optimal image size based on complexity for flat-line generation
+   */
+  private selectOptimalSize(complexity: string): '1024x1024' | '1024x1792' | '1792x1024' {
     switch (complexity) {
       case 'simple':
-        return '512x512';
-      case 'complex':
         return '1024x1024';
+      case 'complex':
+        return '1024x1792'; // Taller format for complex diagrams and step-by-step examples
       default:
-        return '512x512';
+        return '1024x1024';
     }
   }
 

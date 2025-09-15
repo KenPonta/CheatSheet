@@ -1,0 +1,251 @@
+
+
+Counting 
+PuttachatKhuntontong
+
+How many combination types we can have?
+
+Counting 
+•Assume we have a set of objects with certain properties 
+•Counting is used to determine the number of these objects
+Example 
+Number of available phone numbers 
+with 10 digits in the local calling area
+Number of possible football match starters 
+given the number of team members and their 
+positions
+
+•Basic Counting
+•Product rule
+•Sum rule 
+•More complex counting problems 
+•Inclusion-Exclusion principle
+•Tree Diagrams 
+•Pigeonhole Principle 
+Counting 
+
+Basic counting rules
+•Counting problems may be very hard, not obvious
+ 
+•Solution: 
+– simplify the solution by decomposing the problem
+•Basic Counting
+•Product rule
+•Sum rule 
+•More complex 
+   counting problems 
+•Inclusion-Exclusion 
+    principle
+•Tree Diagrams 
+•Pigeonhole Principle 
+
+Basic counting rules
+•Basic Counting
+•Product rule
+•Sum rule 
+•More complex 
+   counting problems 
+•Inclusion-Exclusion 
+    principle
+•Tree Diagrams 
+•Pigeonhole Principle 
+
+Product rule
+•Basic Counting
+•Product rule
+•Sum rule 
+•More complex 
+   counting problems 
+•Inclusion-Exclusion 
+    principle
+•Tree Diagrams 
+•Pigeonhole Principle 
+
+Product rule
+
+Product rule
+
+Product rule
+
+Product rule
+
+Product rule
+
+Product rule
+
+Product rule
+
+let N denote a digit that can take any of the values 2 through 9
+let X denote a digit that can take any of the values 0 through 9
+How many different North American telephone numbers are possible?
+Product rule
+8 · 10 · 10 = 800 area codes with format NXX
+10 · 10 · 10 · 10 = 10,000 station codes with format XXXX. 
+Example
+
+
+
+Sum rule
+•Basic Counting
+•Product rule
+•Sum rule 
+•More complex 
+   counting problems 
+•Inclusion-Exclusion 
+    principle
+•Tree Diagrams 
+•Pigeonhole Principle 
+
+Sum rule
+
+Sum rule
+Example
+
+•Basic Counting
+•Product rule
+•Sum rule 
+•More complex 
+   counting problems 
+•Inclusion-Exclusion 
+    principle
+•Tree Diagrams 
+•Pigeonhole Principle 
+Beyond basic counting rules
+
+Beyond basic counting rules
+
+Beyond basic counting rules
+
+Beyond basic counting rules
+
+Beyond basic counting rules
+
+Beyond basic counting rules
+
+•Basic Counting
+•Product rule
+•Sum rule 
+•More complex 
+   counting problems 
+•Inclusion-Exclusion 
+    principle
+•Tree Diagrams 
+•Pigeonhole Principle 
+Inclusion-Exclusion principle
+
+Inclusion-Exclusion principle
+•Basic Counting
+•Product rule
+•Sum rule 
+•More complex 
+   counting problems 
+•Inclusion-Exclusion 
+    principle
+•Tree Diagrams 
+•Pigeonhole Principle 
+Two Finite Sets
+Three Finite Sets
+
+Inclusion-Exclusion principle
+Two Finite Sets
+
+Inclusion-Exclusion principle
+Three Finite Sets : Example
+A total of 1232 students have taken a course in Spanish, 879 have taken a 
+course in French, and 114 have taken a course in Russian. Further, 103 have 
+taken courses in both Spanish and French, 23 have taken courses in both 
+Spanish and Russian, and 14 have taken courses in both French and Russian. 
+If 2092 students have taken a course in at least one of Spanish French and 
+Russian, how many students have taken a course in all 3 languages. 
+
+Let S be the set of students who have taken a course in Spanish, 
+F the set of students who have taken a course in French, 
+and R the set of students who have taken a course in Russian.
+Inclusion-Exclusion principle
+Three Finite Sets : Example (cont.)
+Solution:
+Then, we have |S| = 1232, |F| = 879, |R| = 114, |S∩F| = 103, |S∩R| = 23, 
+|F∩R| = 14, and |S∪F∪R| = 2092.
+Using the equation 
+|S∪F∪R| = |S|+ |F|+ |R| − |S∩F| − |S∩R| − |F∩R| + |S∩F∩R|
+2092 = 1232 + 879 + 114 −103 −23 −14 + |S∩F∩R|
+Solving for |S∩F∩R| yields 7.
+
+Tree Diagarams
+•Basic Counting
+•Product rule
+•Sum rule 
+•More complex 
+   counting problems 
+•Inclusion-Exclusion 
+    principle
+•Tree Diagrams 
+•Pigeonhole Principle 
+
+Tree Diagarams
+
+Tree Diagarams
+
+Tree Diagarams
+
+Tree Diagarams
+
+Tree Diagarams
+
+Tree Diagarams
+
+Tree Diagarams
+Example
+
+•Basic Counting
+•Product rule
+•Sum rule 
+•More complex 
+   counting problems 
+•Inclusion-Exclusion 
+    principle
+•Tree Diagrams 
+•Pigeonhole Principle 
+Pigeonhole Principle
+
+•Basic Counting
+•Product rule
+•Sum rule 
+•More complex 
+   counting problems 
+•Inclusion-Exclusion 
+    principle
+•Tree Diagrams 
+•Pigeonhole Principle 
+Pigeonhole Principle
+
+Pigeonhole Principle
+
+Pigeonhole Principle
+
+Pigeonhole Principle
+
+Pigeonhole Principle
+
+Generalized pigeonhole principle
+
+Generalized pigeonhole principle
+
+Pigeonhole Principle
+
+Pigeonhole Principle
+
+Pigeonhole Principle
+
+let N denote a digit that can take any of the values 2 through 9
+let X denote a digit that can take any of the values 0 through 9
+How many different North American telephone numbers are possible?
+Product rule
+8 · 10 · 10 = 800 area codes with format NXX
+10 · 10 · 10 · 10 = 10,000 station codes with format XXXX. 
+Example
+Different number of area code:
+800 · 10,000 = 8,000,000 
+
+Pigeonhole Principle
+

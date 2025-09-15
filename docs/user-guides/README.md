@@ -1,38 +1,37 @@
-# Cheat Sheet Generator - User Documentation
+# Study Material Generator - User Documentation
 
-Welcome to the Cheat Sheet Generator! This comprehensive guide will help you create customized study materials from your documents using our enhanced priority-based selection and space optimization features.
+Welcome to the Study Material Generator! This comprehensive guide will help you create optimized compact study materials from your documents using our enhanced image generation and content editing features.
 
 ## What's New - Enhanced Features
 
-### 🎯 Priority-Based Topic Selection
-- **Smart Prioritization**: Assign High, Medium, or Low priorities to ensure essential content is always included
-- **Granular Control**: Select individual subtopics within broader topics
-- **Auto-Fill Algorithm**: Automatically optimize content selection based on priorities and available space
+### 🎨 Enhanced Image Generation
+- **Flat-Line Visuals**: Generate simple, clean visual representations for equations and concepts
+- **Contextual Illustrations**: Automatically create relevant diagrams for mathematical content
+- **Multiple Styles**: Choose from different visual styles and line weights
 
-### 📊 Space Optimization System
-- **Real-Time Dashboard**: Monitor space utilization with color-coded feedback
-- **Intelligent Suggestions**: Get context-aware recommendations for optimal space usage
-- **Overflow Management**: Smart solutions when content exceeds available space
+### ✏️ Post-Generation Editing
+- **Content Modification**: Add, remove, or edit sections after generation
+- **Image Management**: Regenerate, remove, or add new visual representations
+- **Real-Time Preview**: See changes instantly with live preview functionality
 
-### 🎨 Reference Format Matching
-- **Visual Analysis**: Extract layout, typography, and styling from reference cheat sheets
-- **Content Density Matching**: Adjust topic selection to match reference information density
-- **Format Application**: Apply reference styling while preserving content accuracy
+### 📊 Compact Layout Optimization
+- **Dense Formatting**: Maximize content density while maintaining readability
+- **Multi-Column Layouts**: Optimize space usage with flexible column arrangements
+- **Academic Styling**: Professional formatting suitable for study materials
 
 ## Quick Start Guide (Updated)
 
 1. **Upload Files**: Drag and drop or select your study materials
-2. **Set Priorities**: Assign High, Medium, or Low priorities to extracted topics
-3. **Monitor Space**: Use the space utilization dashboard to track usage
-4. **Optimize Selection**: Use auto-fill or follow space optimization suggestions
-5. **Apply Reference Format** (Optional): Upload a reference for consistent styling
-6. **Generate**: Create your optimized cheat sheet
+2. **Configure Layout**: Choose compact layout settings and image generation options
+3. **Generate**: Create your compact study guide with enhanced visuals
+4. **Edit Content**: Use the post-generation editor to modify sections and images
+5. **Export**: Download in your preferred format (HTML, PDF, or Markdown)
 
-## New Feature Guides
+## Feature Guides
 
-- [Priority-Based Topic Selection](./priority-topic-selection.md) - Master the priority system for focused content
-- [Space Optimization](./space-optimization.md) - Understand intelligent space management
-- [Reference Format Troubleshooting](./reference-format-troubleshooting.md) - Solve reference format issues
+- [Image Generation](./image-guide.md) - Enhanced visual generation with flat-line styles
+- [Topic Selection](./topic-selection.md) - Select and organize content for compact layouts
+- [Customization Options](./customization.md) - Layout and formatting options
 
 ## Supported File Formats
 
@@ -52,43 +51,40 @@ Welcome to the Cheat Sheet Generator! This comprehensive guide will help you cre
 
 ## Advanced Features
 
-- **Priority-Based Auto-Fill**: Automatically select optimal content based on importance
-- **Space Utilization Dashboard**: Real-time feedback on space usage efficiency
-- **Reference Format Analysis**: Extract and apply formatting from existing cheat sheets
-- **Granular Subtopic Control**: Select specific parts of topics for precise content control
-- **Intelligent Suggestions**: Context-aware recommendations for content optimization
-- **Content Density Matching**: Adapt selection to match reference information density
+- **Flat-Line Image Generation**: Create simple, clean visual representations automatically
+- **Post-Generation Editing**: Modify content and images after initial generation
+- **Multiple Export Formats**: Export to HTML, PDF, or Markdown with embedded visuals
+- **Compact Layout Engine**: Optimize content density while maintaining readability
+- **Mathematical Visualization**: Automatic diagram generation for equations and formulas
 
 ## Best Practices
 
-### Priority Assignment
-- **High Priority**: Core concepts, key formulas, essential definitions
-- **Medium Priority**: Important examples, detailed explanations, secondary concepts  
-- **Low Priority**: Background information, additional examples, supplementary content
+### Image Generation
+- Enable image generation for equations and key concepts
+- Choose appropriate line weights and styles for your content
+- Use monochrome schemes for better printing compatibility
 
-### Space Optimization
-- Target 85-90% space utilization for optimal results
-- Don't sacrifice readability for space efficiency
-- Use preview feature to verify visual balance
-- Follow system suggestions for content adjustments
+### Content Organization
+- Focus on essential concepts for compact layouts
+- Use the editor to fine-tune content after generation
+- Preview your study material before final export
 
-### Reference Formatting
-- Use high-quality, clear reference files
-- Choose references with similar content complexity
-- Allow system to adapt content length to match reference density
+### Layout Optimization
+- Use 2-column layouts for optimal space usage
+- Choose compact font sizes (10pt-11pt) for dense content
+- Maintain narrow margins to maximize content area
 
 ## API Documentation
 
-For developers integrating with the new features:
-- [Space Optimization API](../api/space-optimization-api.md) - Calculate space and optimize selection
-- [Reference Analysis API](../api/reference-analysis-api.md) - Analyze and apply reference formats
-- [Enhanced Generation API](../api/README.md) - Updated generation with new features
+For developers integrating with the features:
+- [Compact Study Generation API](../api/README.md) - Generate compact study materials
+- [Image Generation API](../api/README.md) - Create flat-line visual representations
+- [Content Modification API](../api/README.md) - Edit and modify generated content
 
 ## Need Help?
 
-- Check our [Enhanced Troubleshooting Guide](./troubleshooting.md)
-- Review [Priority Selection Issues](./priority-topic-selection.md#troubleshooting)
-- Check [Space Optimization Problems](./space-optimization.md#troubleshooting)
-- Review [Reference Format Issues](./reference-format-troubleshooting.md)
+- Check our [Troubleshooting Guide](./troubleshooting.md)
+- Review [Image Generation Issues](./image-guide.md#troubleshooting)
+- Check [Layout Problems](./customization.md#troubleshooting)
 - Use in-app help tooltips for contextual guidance
 - Contact support if you need additional assistance

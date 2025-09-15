@@ -2,13 +2,13 @@
 
 ## Overview
 
-The priority-based topic selection system allows you to create focused cheat sheets by assigning importance levels to topics and subtopics. This ensures that the most critical information is always included, even when space is limited.
+The priority-based topic selection system allows you to create focused compact study materials by assigning importance levels to topics and subtopics. This ensures that the most critical information is always included, even when space is limited.
 
 ## How Priority Selection Works
 
 ### Priority Levels
 
-- **High Priority**: Essential topics that must be included in your cheat sheet
+- **High Priority**: Essential topics that must be included in your study material
 - **Medium Priority**: Important topics included when space allows
 - **Low Priority**: Optional topics used to fill remaining space
 
@@ -97,7 +97,7 @@ The dashboard shows:
 
 ### Reference-Guided Selection
 
-When using a reference cheat sheet:
+When using a reference study material:
 
 1. The system analyzes the reference's content density
 2. Topic extraction is adjusted to match reference patterns
@@ -139,7 +139,7 @@ Before finalizing your selection:
 ## Tips for Success
 
 1. **Start Broad**: Begin with topic-level priorities, then refine subtopics
-2. **Use Preview**: Always preview before generating the final cheat sheet
+2. **Use Preview**: Always preview before generating the final study material
 3. **Monitor Space**: Keep an eye on the utilization dashboard
 4. **Iterate**: Adjust priorities based on preview results
 5. **Reference Matching**: Use reference templates for consistent formatting

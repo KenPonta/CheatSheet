@@ -153,8 +153,8 @@ export function GuidedTour({ steps, isActive, onComplete, onSkip }: GuidedTourPr
 export const uploadTourSteps: TourStep[] = [
   {
     id: 'welcome',
-    title: 'Welcome to Cheat Sheet Generator',
-    content: 'This tour will guide you through creating your first cheat sheet from your study materials.',
+    title: 'Welcome to Study Material Generator',
+    content: 'This tour will guide you through creating your first compact study guide from your materials.',
     target: '[data-tour="upload-area"]'
   },
   {
@@ -187,7 +187,7 @@ export const topicSelectionTourSteps: TourStep[] = [
   {
     id: 'topic-selection',
     title: 'Select Topics',
-    content: 'Check the topics you want in your cheat sheet. The page count estimate updates as you select.',
+    content: 'Check the topics you want in your compact study guide. The layout optimizes as you select.',
     target: '[data-tour="topic-checkbox"]'
   },
   {
@@ -208,13 +208,13 @@ export const customizationTourSteps: TourStep[] = [
   {
     id: 'page-settings',
     title: 'Page Settings',
-    content: 'Customize your cheat sheet layout: page count, size, text size, and columns.',
+    content: 'Customize your study guide layout: columns, font size, margins, and output format.',
     target: '[data-tour="page-settings"]'
   },
   {
     id: 'reference-template',
     title: 'Reference Template',
-    content: 'Upload an existing cheat sheet to use as a formatting reference for consistent styling.',
+    content: 'Configure image generation options to enhance your study materials with visual aids.',
     target: '[data-tour="reference-template"]'
   },
   {
@@ -225,8 +225,8 @@ export const customizationTourSteps: TourStep[] = [
   },
   {
     id: 'generate',
-    title: 'Generate Your Cheat Sheet',
-    content: 'When you\'re ready, click generate to create your personalized study material!',
+    title: 'Generate Your Study Guide',
+    content: 'When you\'re ready, click generate to create your compact study material!',
     target: '[data-tour="generate-button"]'
   }
 ]

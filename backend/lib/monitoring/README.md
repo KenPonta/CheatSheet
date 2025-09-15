@@ -1,6 +1,6 @@
 # Production Monitoring System
 
-This directory contains the complete monitoring and deployment infrastructure for the Cheat Sheet Generator application.
+This directory contains the complete monitoring and deployment infrastructure for the Study Material Generator application.
 
 ## Overview
 

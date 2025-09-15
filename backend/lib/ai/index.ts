@@ -17,6 +17,16 @@ export {
   ImageRecreationService, 
   getImageRecreationService 
 } from './image-recreation-service';
+export { 
+  SimpleImageGenerator,
+  simpleImageGenerator,
+  type FlatLineStyle,
+  type FlatLineImageRequest,
+  type ConceptData,
+  type ExampleData,
+  type VisualElement
+} from './simple-image-generator';
+// CheatSheetAgent removed as part of cleanup
 export * from './types';
 
 // Re-export commonly used types for convenience

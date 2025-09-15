@@ -2,7 +2,7 @@
 
 ## Overview
 
-The customization phase allows you to configure the layout, formatting, and appearance of your cheat sheet to meet your specific needs and preferences.
+The customization phase allows you to configure the layout, formatting, and appearance of your compact study material to meet your specific needs and preferences.
 
 ## Page Settings
 
@@ -51,7 +51,7 @@ Estimated capacity:
 ## Reference Templates
 
 ### How Reference Templates Work
-1. **Upload**: Provide an existing cheat sheet as a reference
+1. **Upload**: Provide an existing study material as a reference
 2. **Analysis**: AI analyzes layout, formatting, and structure
 3. **Application**: Similar styling is applied to your content
 4. **Adaptation**: System adapts reference style to fit your content
@@ -216,7 +216,7 @@ When space is limited, system prioritizes:
 - Consider removing problematic images
 
 ### Readability Issues
-**Issue**: Final cheat sheet is hard to read
+**Issue**: Final study material is hard to read
 **Solutions**:
 - Increase font size
 - Reduce column count

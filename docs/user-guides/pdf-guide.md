@@ -2,7 +2,7 @@
 
 ## Overview
 
-The cheat sheet generator can extract text and images from PDF documents, including scanned PDFs using OCR technology.
+The study material generator can extract text and images from PDF documents, including scanned PDFs using OCR technology.
 
 ## Supported PDF Types
 

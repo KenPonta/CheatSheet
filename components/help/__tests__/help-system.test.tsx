@@ -97,7 +97,7 @@ describe('Help System Components', () => {
       )
       
       expect(screen.getByText('1 of 4')).toBeInTheDocument()
-      expect(screen.getByText('Welcome to Cheat Sheet Generator')).toBeInTheDocument()
+      expect(screen.getByText('Welcome to Study Material Generator')).toBeInTheDocument()
     })
 
     it('does not render when inactive', () => {
@@ -110,7 +110,7 @@ describe('Help System Components', () => {
         />
       )
       
-      expect(screen.queryByText('Welcome to Cheat Sheet Generator')).not.toBeInTheDocument()
+      expect(screen.queryByText('Welcome to Study Material Generator')).not.toBeInTheDocument()
     })
 
     it('calls onSkip when skip button is clicked', () => {

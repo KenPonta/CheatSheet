@@ -210,7 +210,7 @@ Consider recreation if:
 - Contains important diagrams that could be clearer
 - Has educational examples that would benefit from clean recreation
 
-Respond in JSON format:
+Please respond with a JSON object containing your analysis:
 {
   "needsRecreation": true,
   "recreationReason": "Poor image quality makes text hard to read",
@@ -247,7 +247,7 @@ Assess both images on these factors:
 3. ACCURACY: How accurate is the information presented?
 4. READABILITY: How easy is it to read in a cheat sheet format?
 
-Provide scores (0-1) and recommendation:
+Please provide your assessment as a JSON object with scores (0-1) and recommendation:
 
 {
   "originalScore": 0.75,

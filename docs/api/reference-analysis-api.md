@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Reference Analysis API provides endpoints for analyzing reference cheat sheets, extracting visual formatting elements, and applying reference styles to user content.
+The Reference Analysis API provides endpoints for analyzing reference study materials, extracting visual formatting elements, and applying reference styles to user content.
 
 ## Base URL
 
@@ -14,7 +14,7 @@ The Reference Analysis API provides endpoints for analyzing reference cheat shee
 
 ### Analyze Reference Format
 
-Analyze a reference cheat sheet to extract visual formatting and layout patterns.
+Analyze a reference study material to extract visual formatting and layout patterns.
 
 **Endpoint:** `POST /api/reference-analysis/analyze`
 
@@ -467,7 +467,7 @@ const pollAnalysisStatus = async (analysisId) => {
 - **Supported Formats**: PDF, PNG, JPG, JPEG, GIF, BMP
 - **Maximum File Size**: 10MB
 - **Resolution**: Minimum 300 DPI for best results
-- **Content**: Must contain actual cheat sheet content
+- **Content**: Must contain actual study material content
 
 ### Performance Optimization
 

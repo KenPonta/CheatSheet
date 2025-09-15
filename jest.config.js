@@ -18,7 +18,11 @@ const customJestConfig = {
     '^@/backend/(.*)$': '<rootDir>/backend/$1',
     '^@/components/(.*)$': '<rootDir>/components/$1',
     '^@/lib/(.*)$': '<rootDir>/backend/lib/$1',
+    '^uuid$': '<rootDir>/__mocks__/uuid.js',
   },
+  transformIgnorePatterns: [
+    'node_modules/(?!(uuid|@radix-ui)/)'
+  ],
   collectCoverageFrom: [
     'backend/lib/**/*.{js,jsx,ts,tsx}',
     'components/**/*.{js,jsx,ts,tsx}',

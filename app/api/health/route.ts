@@ -5,6 +5,7 @@
 
 import { NextResponse } from 'next/server';
 import { env, isDevelopment } from '../../../backend/lib/config/environment';
+import '../../../backend/lib/startup';
 
 interface ServiceHealth {
   status: 'healthy' | 'degraded' | 'unhealthy';
@@ -81,11 +82,24 @@ async function checkFileProcessingService(): Promise<ServiceHealth> {
     const publicDir = path.join(process.cwd(), 'public');
     await fs.promises.access(publicDir);
     
-    return {
-      status: 'healthy',
-      message: 'File processing service operational',
-      responseTime: Date.now() - startTime,
-    };
+    // Test Sharp functionality
+    try {
+      const sharp = (await import('../../../backend/lib/sharp-config')).default;
+      const testBuffer = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==', 'base64');
+      await sharp(testBuffer, { sequentialRead: true }).png().toBuffer();
+      
+      return {
+        status: 'healthy',
+        message: 'File processing service operational (Sharp working)',
+        responseTime: Date.now() - startTime,
+      };
+    } catch (sharpError) {
+      return {
+        status: 'degraded',
+        message: 'File processing operational but Sharp image processing may be limited',
+        responseTime: Date.now() - startTime,
+      };
+    }
   } catch (error) {
     return {
       status: 'unhealthy',

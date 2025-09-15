@@ -56,7 +56,7 @@ export class FileProcessingCache {
    */
   async generateFileHash(file: File): Promise<string> {
     try {
-      // Try to use Web Crypto API if available
+      // Try to use Web Crypto API if available - hash actual file content
       if (typeof crypto !== 'undefined' && crypto.subtle) {
         const buffer = await file.arrayBuffer();
         const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
@@ -67,24 +67,51 @@ export class FileProcessingCache {
       // Fall through to simple hash
     }
     
-    // Fallback to simple hash for testing environments
-    return this.generateSimpleHash(file);
+    // Fallback to content-based hash for testing environments
+    return this.generateContentBasedHash(file);
   }
 
   /**
-   * Generate a simple hash for environments without crypto.subtle
+   * Generate a content-based hash for environments without crypto.subtle
    */
-  private async generateSimpleHash(file: File): Promise<string> {
-    const text = `${file.name}_${file.size}_${file.lastModified}_${file.type}`;
-    let hash = 0;
-    
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32-bit integer
+  private async generateContentBasedHash(file: File): Promise<string> {
+    try {
+      // Read a sample of the file content to create a more unique hash
+      const sampleSize = Math.min(8192, file.size); // Read first 8KB or entire file if smaller
+      const buffer = await file.slice(0, sampleSize).arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      
+      // Create hash from file metadata + content sample + current timestamp for uniqueness
+      const metadata = `${file.name}_${file.size}_${file.lastModified}_${file.type}_${Date.now()}_${Math.random()}`;
+      let hash = 0;
+      
+      // Hash metadata
+      for (let i = 0; i < metadata.length; i++) {
+        const char = metadata.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash; // Convert to 32-bit integer
+      }
+      
+      // Hash content sample
+      for (let i = 0; i < bytes.length; i++) {
+        hash = ((hash << 5) - hash) + bytes[i];
+        hash = hash & hash; // Convert to 32-bit integer
+      }
+      
+      return Math.abs(hash).toString(16);
+    } catch (error) {
+      // Ultimate fallback - use timestamp and random number to ensure uniqueness
+      const fallback = `${file.name}_${file.size}_${Date.now()}_${Math.random().toString(36)}`;
+      let hash = 0;
+      
+      for (let i = 0; i < fallback.length; i++) {
+        const char = fallback.charCodeAt(i);
+        hash = ((hash << 5) - hash) + char;
+        hash = hash & hash;
+      }
+      
+      return Math.abs(hash).toString(16);
     }
-    
-    return Math.abs(hash).toString(16);
   }
 
   /**

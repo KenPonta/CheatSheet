@@ -84,7 +84,7 @@ interface TopicSelection {
   estimatedSpace: number
 }
 
-interface CheatSheetConfig {
+interface StudyMaterialConfig {
   paperSize: 'a4' | 'letter' | 'legal' | 'a3'
   orientation: 'portrait' | 'landscape'
   columns: 1 | 2 | 3
@@ -102,7 +102,7 @@ interface EnhancedTopicSelectionProps {
   onAutoFill: (availableSpace: number) => void
   onContinue: () => void
   onBack: () => void
-  config: CheatSheetConfig
+  config: StudyMaterialConfig
   spaceUtilization?: SpaceUtilizationInfo
 }
 
@@ -133,7 +133,7 @@ const getPriorityIcon = (priority: 'high' | 'medium' | 'low') => {
 // Calculate space utilization based on selected topics and subtopics
 const calculateSpaceUtilization = (
   topics: EnhancedTopic[], 
-  config: CheatSheetConfig
+  config: StudyMaterialConfig
 ): SpaceUtilizationInfo => {
   // Base space calculation (simplified version of the backend service)
   const PAGE_SIZES = {
@@ -417,7 +417,7 @@ export function EnhancedTopicSelection({
           </Button>
         </div>
         <CardDescription>
-          Choose and prioritize topics for your cheat sheet. {selectedTopics.length} topics and {selectedSubtopicsCount} subtopics selected.
+          Choose and prioritize topics for your study guide. {selectedTopics.length} topics and {selectedSubtopicsCount} subtopics selected.
           <span className={`ml-2 font-medium ${getUtilizationColor(spaceUtilization.utilizationPercentage)}`}>
             Space utilization: {Math.round(spaceUtilization.utilizationPercentage * 100)}%
           </span>

@@ -2,7 +2,7 @@
 
 ## Overview
 
-The cheat sheet generator extracts content from PowerPoint presentations (.pptx format), including slide text, images, and speaker notes to create comprehensive study materials.
+The study material generator extracts content from PowerPoint presentations (.pptx format), including slide text, images, and speaker notes to create comprehensive compact study materials.
 
 ## Supported Formats
 

@@ -27,12 +27,12 @@ export class MemoryManager {
   private activeProcessing = new Set<string>();
   private memoryUsageHistory: MemoryUsage[] = [];
   private gcTimer?: NodeJS.Timeout;
-  
+
   private readonly config: MemoryConfig = {
-    warningThreshold: 80,
-    criticalThreshold: 95, // Increased for development
-    maxConcurrentFiles: 2, // Reduced for better memory management
-    maxFileSize: 50 * 1024 * 1024, // Reduced to 50MB
+    warningThreshold: 85,
+    criticalThreshold: 98, // More lenient for better usability
+    maxConcurrentFiles: 3, // Allow more concurrent processing
+    maxFileSize: 100 * 1024 * 1024, // Increased to 100MB
     enableGarbageCollection: true,
     gcIntervalMs: 15000 // More frequent GC
   };
@@ -41,7 +41,7 @@ export class MemoryManager {
     if (config) {
       this.config = { ...this.config, ...config };
     }
-    
+
     if (this.config.enableGarbageCollection) {
       this.startGarbageCollection();
     }
@@ -54,11 +54,13 @@ export class MemoryManager {
     if (typeof process !== 'undefined' && process.memoryUsage) {
       // Node.js environment
       const usage = process.memoryUsage();
+      // Use RSS (Resident Set Size) for more accurate total memory representation
+      const total = Math.max(usage.heapTotal, usage.rss, 512 * 1024 * 1024); // At least 512MB
       return {
         used: usage.heapUsed,
-        total: usage.heapTotal,
-        percentage: (usage.heapUsed / usage.heapTotal) * 100,
-        available: usage.heapTotal - usage.heapUsed
+        total: total,
+        percentage: (usage.heapUsed / total) * 100,
+        available: total - usage.heapUsed
       };
     } else if (typeof performance !== 'undefined' && 'memory' in performance) {
       // Browser environment with memory API
@@ -70,12 +72,14 @@ export class MemoryManager {
         available: memory.totalJSHeapSize - memory.usedJSHeapSize
       };
     } else {
-      // Fallback for environments without memory API
+      // Fallback for environments without memory API - assume reasonable defaults
+      const assumedTotal = 1024 * 1024 * 1024; // 1GB
+      const assumedUsed = 256 * 1024 * 1024; // 256MB
       return {
-        used: 0,
-        total: 0,
-        percentage: 0,
-        available: 0
+        used: assumedUsed,
+        total: assumedTotal,
+        percentage: (assumedUsed / assumedTotal) * 100,
+        available: assumedTotal - assumedUsed
       };
     }
   }
@@ -111,10 +115,13 @@ export class MemoryManager {
 
     // Estimate if file processing would exceed memory limits
     const estimatedMemoryNeeded = this.estimateMemoryNeeded(fileSize);
-    if (memoryUsage.used + estimatedMemoryNeeded > memoryUsage.total * 0.9) {
+    const availableMemory = memoryUsage.available;
+
+    // Only check if we have meaningful memory information
+    if (memoryUsage.total > 0 && estimatedMemoryNeeded > availableMemory * 0.8) {
       return {
         canProcess: false,
-        reason: `Estimated memory needed (${this.formatBytes(estimatedMemoryNeeded)}) would exceed available memory`
+        reason: `Estimated memory needed (${this.formatBytes(estimatedMemoryNeeded)}) would exceed available memory (${this.formatBytes(availableMemory)})`
       };
     }
 
@@ -135,7 +142,7 @@ export class MemoryManager {
   finishProcessing(fileId: string): void {
     this.activeProcessing.delete(fileId);
     this.recordMemoryUsage();
-    
+
     // Trigger garbage collection if memory usage is high
     const memoryUsage = this.getMemoryUsage();
     if (memoryUsage.percentage > this.config.warningThreshold) {
@@ -150,13 +157,13 @@ export class MemoryManager {
     const memoryUsage = this.getMemoryUsage();
     let maxConcurrentFiles = this.config.maxConcurrentFiles;
     let maxFileSize = this.config.maxFileSize;
-    
+
     // Reduce limits if memory usage is high
     if (memoryUsage.percentage > this.config.warningThreshold) {
       maxConcurrentFiles = Math.max(1, Math.floor(maxConcurrentFiles * 0.5));
       maxFileSize = Math.floor(maxFileSize * 0.7);
     }
-    
+
     if (memoryUsage.percentage > this.config.criticalThreshold) {
       maxConcurrentFiles = 1;
       maxFileSize = Math.floor(maxFileSize * 0.5);
@@ -181,7 +188,7 @@ export class MemoryManager {
     historyLength: number;
   } {
     const current = this.getMemoryUsage();
-    
+
     if (this.memoryUsageHistory.length === 0) {
       return {
         current,
@@ -199,7 +206,7 @@ export class MemoryManager {
       available: this.memoryUsageHistory.reduce((sum, usage) => sum + usage.available, 0) / this.memoryUsageHistory.length
     };
 
-    const peak = this.memoryUsageHistory.reduce((max, usage) => 
+    const peak = this.memoryUsageHistory.reduce((max, usage) =>
       usage.percentage > max.percentage ? usage : max, this.memoryUsageHistory[0]);
 
     return {
@@ -216,7 +223,7 @@ export class MemoryManager {
    */
   createChunkedReader(file: File, chunkSize?: number): AsyncGenerator<ArrayBuffer, void, unknown> {
     const actualChunkSize = chunkSize || this.calculateOptimalChunkSize(this.getMemoryUsage());
-    
+
     return this.readFileInChunks(file, actualChunkSize);
   }
 
@@ -245,20 +252,20 @@ export class MemoryManager {
 
   private async* readFileInChunks(file: File, chunkSize: number): AsyncGenerator<ArrayBuffer, void, unknown> {
     let offset = 0;
-    
+
     while (offset < file.size) {
       const chunk = file.slice(offset, offset + chunkSize);
       const buffer = await chunk.arrayBuffer();
-      
+
       // Check memory usage before yielding chunk
       const memoryUsage = this.getMemoryUsage();
       if (memoryUsage.percentage > this.config.criticalThreshold) {
         this.forceGarbageCollection();
-        
+
         // Wait a bit for GC to complete
         await new Promise(resolve => setTimeout(resolve, 100));
       }
-      
+
       yield buffer;
       offset += chunkSize;
     }
@@ -268,13 +275,13 @@ export class MemoryManager {
     // Rough estimation: file size + processing overhead
     // Text extraction typically uses 2-3x file size
     // Image processing can use 5-10x file size
-    // We'll use a conservative 4x multiplier
-    return fileSize * 4;
+    // We'll use a more reasonable 2.5x multiplier for better usability
+    return fileSize * 2.5;
   }
 
   private calculateOptimalChunkSize(memoryUsage: MemoryUsage): number {
     const baseChunkSize = 1024 * 1024; // 1MB
-    
+
     if (memoryUsage.percentage < 50) {
       return baseChunkSize * 4; // 4MB chunks when memory is abundant
     } else if (memoryUsage.percentage < 75) {
@@ -287,7 +294,7 @@ export class MemoryManager {
   private recordMemoryUsage(): void {
     const usage = this.getMemoryUsage();
     this.memoryUsageHistory.push(usage);
-    
+
     // Keep only last 100 entries
     if (this.memoryUsageHistory.length > 100) {
       this.memoryUsageHistory.shift();
@@ -297,23 +304,23 @@ export class MemoryManager {
   private startGarbageCollection(): void {
     this.gcTimer = setInterval(() => {
       const memoryUsage = this.getMemoryUsage();
-      
+
       // Trigger GC if memory usage is above warning threshold
       if (memoryUsage.percentage > this.config.warningThreshold) {
         this.forceGarbageCollection();
       }
-      
+
       this.recordMemoryUsage();
     }, this.config.gcIntervalMs);
   }
 
   private formatBytes(bytes: number): string {
     if (bytes === 0) return '0 Bytes';
-    
+
     const k = 1024;
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    
+
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   }
 }

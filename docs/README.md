@@ -1,8 +1,8 @@
-# Cheat Sheet Generator Documentation
+# Study Material Generator Documentation
 
 ## Overview
 
-This documentation system provides comprehensive help and guidance for users of the Cheat Sheet Generator application. It includes user guides, API documentation, troubleshooting resources, and interactive help features.
+This documentation system provides comprehensive help and guidance for users of the Study Material Generator application. It includes user guides, API documentation, troubleshooting resources, and interactive help features focused on compact study material generation.
 
 ## Documentation Structure
 
@@ -97,7 +97,7 @@ The help system automatically detects the current workflow stage:
 - `processing` - Content extraction and analysis
 - `topics` - Topic selection and editing
 - `customization` - Layout and formatting configuration
-- `generation` - Cheat sheet creation and download
+- `generation` - Study material creation and download
 
 ### Adding New Help Content
 

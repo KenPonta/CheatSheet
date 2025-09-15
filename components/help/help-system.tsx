@@ -69,7 +69,7 @@ const faqData: FAQItem[] = [
   {
     id: '7',
     question: 'How does reference format matching work?',
-    answer: 'Upload a reference cheat sheet and our AI analyzes its visual layout, typography, spacing, and color scheme. Your content is then formatted to match the reference style while preserving original meaning. This ensures consistency across your study materials.',
+    answer: 'The system automatically generates simple, flat-line visual representations for equations, concepts, and examples. You can customize the style, line weight, and layout to match your preferences while maintaining clarity and readability.',
     category: 'customization',
     tags: ['reference', 'format', 'matching', 'template', 'style', 'analysis']
   },
@@ -124,8 +124,8 @@ const faqData: FAQItem[] = [
   },
   {
     id: '15',
-    question: 'Can I create multiple cheat sheets from the same files?',
-    answer: 'Yes! Once files are processed, you can create different cheat sheets by selecting different topics, changing priorities, adjusting page settings, or using different reference templates without re-uploading.',
+    question: 'Can I create multiple study guides from the same files?',
+    answer: 'Yes! Once files are processed, you can create different compact study guides by adjusting layout settings, image generation options, or content selection without re-uploading your materials.',
     category: 'general',
     tags: ['multiple', 'reuse', 'files', 'different', 'priorities']
   },
@@ -404,7 +404,7 @@ export function HelpSystem({ workflowStage = 'upload' }: HelpSystemProps) {
             <TabsContent value="tours" className="mt-4">
               <div className="space-y-4">
                 <div className="text-sm text-muted-foreground mb-4">
-                  Interactive tours guide you through each step of the cheat sheet creation process.
+                  Interactive tours guide you through each step of the study material creation process.
                 </div>
                 
                 <div className="grid gap-4">
@@ -430,7 +430,7 @@ export function HelpSystem({ workflowStage = 'upload' }: HelpSystemProps) {
                         <div>
                           <div className="font-medium">Topic Selection Tour</div>
                           <div className="text-sm text-muted-foreground">
-                            Understand how to choose and edit topics for your cheat sheet
+                            Understand how to choose and organize content for your study guide
                           </div>
                         </div>
                         <TourStarter 

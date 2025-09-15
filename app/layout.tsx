@@ -5,9 +5,9 @@ import './globals.css'
 import { MonitoringProvider } from '../components/monitoring-provider'
 
 export const metadata: Metadata = {
-  title: 'v0 App',
-  description: 'Created with v0',
-  generator: 'v0.app',
+  title: 'Study Material Generator',
+  description: 'Transform your documents into optimized compact study materials with enhanced visual representations',
+  generator: 'Study Material Generator',
 }
 
 export default function RootLayout({

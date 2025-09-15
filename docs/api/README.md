@@ -1,8 +1,8 @@
-# Cheat Sheet Generator API Documentation
+# Study Material Generator API Documentation
 
 ## Overview
 
-The Cheat Sheet Generator provides a RESTful API for programmatic access to file processing, content extraction, and cheat sheet generation capabilities. This documentation covers all available endpoints, request/response formats, and integration examples.
+The Study Material Generator provides a RESTful API for programmatic access to file processing, content extraction, and compact study material generation capabilities. This documentation covers all available endpoints, request/response formats, and integration examples.
 
 ## Base URL
 
@@ -18,7 +18,7 @@ Currently, the API uses session-based authentication. Future versions will suppo
 
 - **File Upload**: 10 files per minute per session
 - **Processing**: 5 concurrent processing jobs per session
-- **Generation**: 3 cheat sheet generations per minute per session
+- **Generation**: 3 compact study material generations per minute per session
 
 ## API Endpoints
 
@@ -144,14 +144,14 @@ Extract and organize topics from processed content.
 }
 ```
 
-### Cheat Sheet Generation
+### Compact Study Material Generation
 
-#### Generate Cheat Sheet
+#### Generate Compact Study Material
 ```http
-POST /api/generate-cheatsheet
+POST /api/generate-compact-study
 ```
 
-Generate a cheat sheet from selected topics and configuration.
+Generate a compact study material from selected topics and configuration.
 
 **Request:**
 ```typescript
@@ -200,7 +200,7 @@ Generate a cheat sheet from selected topics and configuration.
 GET /api/generation-status/{generationId}
 ```
 
-Check the status of cheat sheet generation.
+Check the status of compact study material generation.
 
 **Response:**
 ```typescript
@@ -300,7 +300,7 @@ Get usage statistics and performance metrics.
   data: {
     usage: {
       filesProcessed: number
-      cheatsheetsGenerated: number
+      studyMaterialsGenerated: number
       totalUsers: number
     }
     performance: {
@@ -400,13 +400,13 @@ interface SourceLocation {
 ### JavaScript/TypeScript SDK
 
 ```bash
-npm install @cheatsheet-generator/sdk
+npm install @study-material-generator/sdk
 ```
 
 ```typescript
-import { CheatSheetClient } from '@cheatsheet-generator/sdk'
+import { StudyMaterialClient } from '@study-material-generator/sdk'
 
-const client = new CheatSheetClient({
+const client = new StudyMaterialClient({
   baseUrl: 'https://your-domain.com/api',
   // apiKey: 'your-api-key' // Future feature
 })
@@ -417,8 +417,8 @@ const upload = await client.uploadFiles([file1, file2])
 // Extract topics
 const topics = await client.extractTopics(upload.uploadId)
 
-// Generate cheat sheet
-const result = await client.generateCheatSheet({
+// Generate compact study material
+const result = await client.generateCompactStudy({
   uploadId: upload.uploadId,
   selectedTopics: topics.data.topics.map(t => t.id),
   config: {
@@ -434,13 +434,13 @@ const result = await client.generateCheatSheet({
 ### Python SDK
 
 ```bash
-pip install cheatsheet-generator-sdk
+pip install study-material-generator-sdk
 ```
 
 ```python
-from cheatsheet_generator import CheatSheetClient
+from study_material_generator import StudyMaterialClient
 
-client = CheatSheetClient(
+client = StudyMaterialClient(
     base_url='https://your-domain.com/api'
     # api_key='your-api-key'  # Future feature
 )
@@ -451,8 +451,8 @@ upload = client.upload_files(['file1.pdf', 'file2.docx'])
 # Extract topics
 topics = client.extract_topics(upload['uploadId'])
 
-# Generate cheat sheet
-result = client.generate_cheat_sheet(
+# Generate compact study material
+result = client.generate_compact_study(
     upload_id=upload['uploadId'],
     selected_topics=[t['id'] for t in topics['topics']],
     config={
@@ -471,7 +471,7 @@ result = client.generate_cheat_sheet(
 
 - `file.processing.completed`
 - `topic.extraction.completed`
-- `cheatsheet.generation.completed`
+- `compact-study.generation.completed`
 - `image.recreation.completed`
 
 ### Webhook Payload
@@ -519,7 +519,7 @@ result = client.generate_cheat_sheet(
 ### Complete Workflow Example
 
 ```typescript
-async function createCheatSheet(files: File[]) {
+async function createCompactStudyMaterial(files: File[]) {
   try {
     // 1. Upload files
     const upload = await fetch('/api/upload', {
@@ -540,8 +540,8 @@ async function createCheatSheet(files: File[]) {
       })
     }).then(r => r.json())
 
-    // 4. Generate cheat sheet
-    const generation = await fetch('/api/generate-cheatsheet', {
+    // 4. Generate compact study material
+    const generation = await fetch('/api/generate-compact-study', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -562,7 +562,7 @@ async function createCheatSheet(files: File[]) {
     return result.data.pdfUrl
 
   } catch (error) {
-    console.error('Cheat sheet creation failed:', error)
+    console.error('Compact study material creation failed:', error)
     throw error
   }
 }
@@ -589,7 +589,7 @@ async function waitForProcessing(uploadId: string): Promise<any> {
 - Initial API release
 - File upload and processing
 - Topic extraction
-- Cheat sheet generation
+- Compact study material generation
 - Image recreation
 - Health monitoring
 
@@ -605,7 +605,7 @@ async function waitForProcessing(uploadId: string): Promise<any> {
 
 ### Space Optimization API
 
-The Space Optimization API provides intelligent space management for cheat sheet generation, ensuring optimal content utilization and preventing overflow issues.
+The Space Optimization API provides intelligent space management for compact study material generation, ensuring optimal content utilization and preventing overflow issues.
 
 **Key Features:**
 - Calculate available space based on configuration
@@ -620,7 +620,7 @@ See [Space Optimization API Documentation](./space-optimization-api.md) for deta
 
 ### Reference Analysis API
 
-The Reference Analysis API enables format matching with reference cheat sheets, allowing users to create cheat sheets that closely match existing templates.
+The Reference Analysis API enables format matching with reference study materials, allowing users to create compact study materials that closely match existing templates.
 
 **Key Features:**
 - Analyze reference visual formatting and layout patterns
@@ -685,11 +685,11 @@ POST /api/extract-topics-space-aware
 
 ### Reference-Guided Generation
 
-Cheat sheet generation now supports reference format matching:
+Compact study material generation now supports reference format matching:
 
 ```typescript
 // Enhanced generation with reference formatting
-POST /api/generate-cheatsheet
+POST /api/generate-compact-study
 {
   uploadId: string
   selectedTopics: Array<{

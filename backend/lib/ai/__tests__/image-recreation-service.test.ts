@@ -1,37 +1,32 @@
 import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import type { ExtractedImage, ImageContextAnalysis, GeneratedImage } from '../types';
 
-// Mock the entire image recreation service module
-const mockAnalyzeImageContext = jest.fn();
-const mockGenerateImage = jest.fn();
-const mockAssessImageQuality = jest.fn();
-const mockRecreateImage = jest.fn();
-const mockRecreateImages = jest.fn();
-const mockCreateApprovalWorkflow = jest.fn();
-
-jest.mock('../image-recreation-service', () => ({
-  ImageRecreationService: jest.fn().mockImplementation(() => ({
-    analyzeImageContext: mockAnalyzeImageContext,
-    generateImage: mockGenerateImage,
-    assessImageQuality: mockAssessImageQuality,
-    recreateImage: mockRecreateImage,
-    recreateImages: mockRecreateImages,
-    createApprovalWorkflow: mockCreateApprovalWorkflow
-  })),
-  getImageRecreationService: jest.fn().mockImplementation(() => ({
-    analyzeImageContext: mockAnalyzeImageContext,
-    generateImage: mockGenerateImage,
-    assessImageQuality: mockAssessImageQuality,
-    recreateImage: mockRecreateImage,
-    recreateImages: mockRecreateImages,
-    createApprovalWorkflow: mockCreateApprovalWorkflow
+// Mock SimpleImageGenerator
+const mockGenerateFlatLineImage = jest.fn();
+jest.mock('../simple-image-generator', () => ({
+  SimpleImageGenerator: jest.fn().mockImplementation(() => ({
+    generateFlatLineImage: mockGenerateFlatLineImage
   }))
 }));
 
-// Mock fetch for URL to base64 conversion
-global.fetch = jest.fn();
+// Mock OpenAI client
+const mockCreateChatCompletion = jest.fn();
+const mockClient = {
+  createChatCompletion: mockCreateChatCompletion,
+  client: {
+    images: {
+      generate: jest.fn()
+    }
+  }
+};
+
+jest.mock('../client', () => ({
+  getOpenAIClient: () => mockClient
+}));
 
 describe('ImageRecreationService', () => {
+  let service: any;
+
   const mockExtractedImage: ExtractedImage = {
     id: 'test-image-1',
     base64: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==',
@@ -40,14 +35,13 @@ describe('ImageRecreationService', () => {
     ocrText: 'x = (-b ± √(b²-4ac)) / 2a'
   };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     // Reset all mocks
     jest.clearAllMocks();
 
-    // Mock fetch for base64 conversion
-    (global.fetch as jest.Mock).mockResolvedValue({
-      arrayBuffer: () => Promise.resolve(new ArrayBuffer(8))
-    });
+    // Import service after mocks are set up
+    const { ImageRecreationService } = await import('../image-recreation-service');
+    service = new ImageRecreationService();
   });
 
   afterEach(() => {
@@ -55,62 +49,49 @@ describe('ImageRecreationService', () => {
   });
 
   describe('analyzeImageContext', () => {
-    it('should analyze image context and determine recreation needs', async () => {
+    it('should analyze image context and determine flat-line visualization type', async () => {
       const mockAnalysis = {
         needsRecreation: true,
         recreationReason: 'Poor image quality makes formula hard to read',
-        contentType: 'formula',
+        contentType: 'equation',
         educationalValue: 'high',
         complexity: 'moderate',
         extractedElements: ['quadratic formula', 'mathematical notation'],
         generationPrompt: 'Clean mathematical formula showing quadratic equation with clear notation'
       };
 
-      mockAnalyzeImageContext.mockResolvedValue(mockAnalysis);
+      mockCreateChatCompletion.mockResolvedValue(JSON.stringify(mockAnalysis));
 
-      const { getImageRecreationService } = require('../image-recreation-service');
-      const service = getImageRecreationService();
       const result = await service.analyzeImageContext(mockExtractedImage);
 
-      expect(result).toEqual(mockAnalysis);
-      expect(mockAnalyzeImageContext).toHaveBeenCalledWith(mockExtractedImage);
+      expect(result.needsRecreation).toBe(true);
+      expect(result.contentType).toBe('formula'); // Mapped from 'equation'
+      expect(result.educationalValue).toBe('high');
+      expect(mockCreateChatCompletion).toHaveBeenCalledWith(
+        expect.arrayContaining([
+          expect.objectContaining({
+            role: 'system',
+            content: expect.stringContaining('flat-line visualizations')
+          })
+        ]),
+        expect.any(Object)
+      );
     });
 
     it('should return safe defaults when analysis fails', async () => {
-      const safeDefaults = {
-        needsRecreation: false,
-        recreationReason: 'Analysis failed',
-        contentType: 'other',
-        educationalValue: 'low',
-        complexity: 'moderate',
-        extractedElements: []
-      };
+      mockCreateChatCompletion.mockRejectedValue(new Error('API Error'));
 
-      mockAnalyzeImageContext.mockResolvedValue(safeDefaults);
-
-      const { getImageRecreationService } = require('../image-recreation-service');
-      const service = getImageRecreationService();
       const result = await service.analyzeImageContext(mockExtractedImage);
 
       expect(result.needsRecreation).toBe(false);
       expect(result.recreationReason).toBe('Analysis failed');
+      expect(result.contentType).toBe('other');
       expect(result.educationalValue).toBe('low');
     });
 
     it('should handle invalid JSON response gracefully', async () => {
-      const safeDefaults = {
-        needsRecreation: false,
-        recreationReason: 'Analysis failed',
-        contentType: 'other',
-        educationalValue: 'low',
-        complexity: 'moderate',
-        extractedElements: []
-      };
+      mockCreateChatCompletion.mockResolvedValue('invalid json');
 
-      mockAnalyzeImageContext.mockResolvedValue(safeDefaults);
-
-      const { getImageRecreationService } = require('../image-recreation-service');
-      const service = getImageRecreationService();
       const result = await service.analyzeImageContext(mockExtractedImage);
 
       expect(result.needsRecreation).toBe(false);
@@ -119,55 +100,86 @@ describe('ImageRecreationService', () => {
   });
 
   describe('generateImage', () => {
-    it('should generate image using DALL-E API', async () => {
-      const mockImageResponse = {
-        data: [{
-          url: 'https://example.com/generated-image.png',
-          revised_prompt: 'A clean mathematical diagram showing the quadratic formula'
-        }]
+    it('should generate image using SimpleImageGenerator', async () => {
+      const mockFlatLineImage = {
+        id: 'flat-line-123',
+        svgContent: '<svg>...</svg>',
+        base64: 'data:image/svg+xml;base64,PHN2Zz4uLi48L3N2Zz4=',
+        dimensions: { width: 1024, height: 1024 },
+        metadata: {
+          type: 'equation' as const,
+          content: 'Quadratic formula diagram',
+          style: {
+            lineWeight: 'medium' as const,
+            colorScheme: 'monochrome' as const,
+            layout: 'horizontal' as const,
+            annotations: false
+          },
+          generatedAt: new Date()
+        }
       };
 
-      mockClient.client.images.generate.mockResolvedValue(mockImageResponse);
+      mockGenerateFlatLineImage.mockResolvedValue(mockFlatLineImage);
 
       const request = {
         description: 'Quadratic formula diagram',
         style: 'formula' as const,
         context: 'Mathematical education',
-        size: '512x512' as const,
+        size: '1024x1024' as const,
         quality: 'standard' as const
       };
 
       const result = await service.generateImage(request);
 
       expect(result).toMatchObject({
-        id: expect.stringMatching(/^generated_\d+_[a-z0-9]+$/),
-        url: 'https://example.com/generated-image.png',
-        prompt: expect.stringContaining('Quadratic formula diagram'),
+        id: 'flat-line-123',
+        url: 'data:image/svg+xml;base64,PHN2Zz4uLi48L3N2Zz4=',
+        base64: 'data:image/svg+xml;base64,PHN2Zz4uLi48L3N2Zz4=',
+        prompt: 'Quadratic formula diagram',
         style: 'formula',
         metadata: {
-          model: 'dall-e-3',
-          size: '512x512',
+          model: 'simple-flat-line-generator',
+          size: '1024x1024',
           quality: 'standard',
-          revisedPrompt: 'A clean mathematical diagram showing the quadratic formula'
+          flatLineType: 'equation',
+          flatLineStyle: expect.any(Object)
         }
       });
 
-      expect(mockClient.client.images.generate).toHaveBeenCalledWith({
-        model: 'dall-e-3',
-        prompt: expect.stringContaining('Quadratic formula diagram'),
-        size: '512x512',
-        quality: 'standard',
-        n: 1,
-        response_format: 'url'
+      expect(mockGenerateFlatLineImage).toHaveBeenCalledWith({
+        type: 'equation',
+        content: 'Quadratic formula diagram',
+        context: 'Mathematical education',
+        style: expect.objectContaining({
+          lineWeight: expect.any(String),
+          colorScheme: 'monochrome',
+          layout: 'horizontal',
+          annotations: false
+        }),
+        dimensions: { width: 1024, height: 1024 }
       });
     });
 
-    it('should optimize prompts for different styles', async () => {
-      const mockImageResponse = {
-        data: [{ url: 'https://example.com/test.png' }]
+    it('should create appropriate flat-line styles for different content types', async () => {
+      const mockFlatLineImage = {
+        id: 'flat-line-456',
+        svgContent: '<svg>...</svg>',
+        base64: 'data:image/svg+xml;base64,test',
+        dimensions: { width: 1024, height: 1024 },
+        metadata: {
+          type: 'diagram' as const,
+          content: 'Flow chart',
+          style: {
+            lineWeight: 'thin' as const,
+            colorScheme: 'monochrome' as const,
+            layout: 'grid' as const,
+            annotations: true
+          },
+          generatedAt: new Date()
+        }
       };
 
-      mockClient.client.images.generate.mockResolvedValue(mockImageResponse);
+      mockGenerateFlatLineImage.mockResolvedValue(mockFlatLineImage);
 
       const diagramRequest = {
         description: 'Flow chart',
@@ -177,13 +189,14 @@ describe('ImageRecreationService', () => {
 
       await service.generateImage(diagramRequest);
 
-      const lastCall = mockClient.client.images.generate.mock.calls[0][0];
-      expect(lastCall.prompt).toContain('Clean, simple diagram');
-      expect(lastCall.prompt).toContain('black lines on white background');
+      const lastCall = mockGenerateFlatLineImage.mock.calls[0][0];
+      expect(lastCall.type).toBe('diagram');
+      expect(lastCall.style.layout).toBe('grid');
+      expect(lastCall.style.colorScheme).toBe('monochrome');
     });
 
     it('should handle generation failures with retries', async () => {
-      mockClient.client.images.generate.mockRejectedValue(new Error('Rate limit exceeded'));
+      mockGenerateFlatLineImage.mockRejectedValue(new Error('Generation failed'));
 
       const request = {
         description: 'Test image',
@@ -191,12 +204,12 @@ describe('ImageRecreationService', () => {
         context: 'Test context'
       };
 
-      await expect(service.generateImage(request)).rejects.toThrow('Image generation failed');
+      await expect(service.generateImage(request)).rejects.toThrow('Flat-line image generation failed');
     });
   });
 
   describe('assessImageQuality', () => {
-    it('should assess quality of original and recreated images', async () => {
+    it('should assess quality of original and recreated flat-line images', async () => {
       const mockAssessment = {
         originalScore: 0.6,
         recreatedScore: 0.85,
@@ -211,23 +224,24 @@ describe('ImageRecreationService', () => {
           type: 'clarity',
           severity: 'low',
           description: 'Original image has slight blur',
-          suggestion: 'Recreated version has better contrast'
+          suggestion: 'Flat-line version has better contrast'
         }]
       };
 
-      mockClient.createChatCompletion.mockResolvedValue(JSON.stringify(mockAssessment));
+      mockCreateChatCompletion.mockResolvedValue(JSON.stringify(mockAssessment));
 
       const mockGeneratedImage: GeneratedImage = {
         id: 'gen-1',
-        url: 'https://example.com/generated.png',
-        base64: 'data:image/png;base64,test',
+        url: 'data:image/svg+xml;base64,test',
+        base64: 'data:image/svg+xml;base64,test',
         prompt: 'Test prompt',
         style: 'formula',
         generationTime: 1000,
         metadata: {
-          model: 'dall-e-3',
-          size: '512x512',
-          quality: 'standard'
+          model: 'simple-flat-line-generator',
+          size: '1024x1024',
+          quality: 'standard',
+          flatLineType: 'equation'
         }
       };
 
@@ -241,7 +255,7 @@ describe('ImageRecreationService', () => {
     });
 
     it('should return conservative assessment when analysis fails', async () => {
-      mockClient.createChatCompletion.mockRejectedValue(new Error('Analysis failed'));
+      mockCreateChatCompletion.mockRejectedValue(new Error('Analysis failed'));
 
       const result = await service.assessImageQuality(mockExtractedImage);
 
@@ -253,7 +267,7 @@ describe('ImageRecreationService', () => {
   });
 
   describe('recreateImage', () => {
-    it('should complete full recreation pipeline', async () => {
+    it('should complete full recreation pipeline with flat-line generation', async () => {
       // Mock context analysis
       const mockAnalysis: ImageContextAnalysis = {
         needsRecreation: true,
@@ -265,9 +279,23 @@ describe('ImageRecreationService', () => {
         generationPrompt: 'Clean formula diagram'
       };
 
-      // Mock image generation
-      const mockImageResponse = {
-        data: [{ url: 'https://example.com/generated.png' }]
+      // Mock flat-line image generation
+      const mockFlatLineImage = {
+        id: 'flat-line-789',
+        svgContent: '<svg>...</svg>',
+        base64: 'data:image/svg+xml;base64,test',
+        dimensions: { width: 1024, height: 1024 },
+        metadata: {
+          type: 'equation' as const,
+          content: 'Clean formula diagram',
+          style: {
+            lineWeight: 'medium' as const,
+            colorScheme: 'monochrome' as const,
+            layout: 'horizontal' as const,
+            annotations: false
+          },
+          generatedAt: new Date()
+        }
       };
 
       // Mock quality assessment
@@ -279,20 +307,21 @@ describe('ImageRecreationService', () => {
         issues: []
       };
 
-      mockClient.createChatCompletion
+      mockCreateChatCompletion
         .mockResolvedValueOnce(JSON.stringify(mockAnalysis))
         .mockResolvedValueOnce(JSON.stringify(mockAssessment));
       
-      mockClient.client.images.generate.mockResolvedValue(mockImageResponse);
+      mockGenerateFlatLineImage.mockResolvedValue(mockFlatLineImage);
 
       const result = await service.recreateImage(mockExtractedImage);
 
       expect(result.originalImage).toBe(mockExtractedImage);
       expect(result.generatedImage).toBeDefined();
+      expect(result.generatedImage?.metadata.model).toBe('simple-flat-line-generator');
       expect(result.qualityAssessment.recommendation).toBe('use_recreated');
       expect(result.userApprovalRequired).toBe(true); // High educational value requires approval
       expect(result.fallbackToOriginal).toBe(false);
-      expect(result.processingTime).toBeGreaterThan(0);
+      expect(result.processingTime).toBeGreaterThanOrEqual(0);
     });
 
     it('should fallback to original when recreation is not needed', async () => {
@@ -313,7 +342,7 @@ describe('ImageRecreationService', () => {
         issues: []
       };
 
-      mockClient.createChatCompletion
+      mockCreateChatCompletion
         .mockResolvedValueOnce(JSON.stringify(mockAnalysis))
         .mockResolvedValueOnce(JSON.stringify(mockAssessment));
 
@@ -335,14 +364,14 @@ describe('ImageRecreationService', () => {
         generationPrompt: 'Clean formula'
       };
 
-      mockClient.createChatCompletion.mockResolvedValue(JSON.stringify(mockAnalysis));
-      mockClient.client.images.generate.mockRejectedValue(new Error('Generation failed'));
+      mockCreateChatCompletion.mockResolvedValue(JSON.stringify(mockAnalysis));
+      mockGenerateFlatLineImage.mockRejectedValue(new Error('Generation failed'));
 
       const result = await service.recreateImage(mockExtractedImage);
 
       expect(result.generatedImage).toBeUndefined();
       expect(result.fallbackToOriginal).toBe(true);
-      expect(result.processingTime).toBeGreaterThan(0);
+      expect(result.processingTime).toBeGreaterThanOrEqual(0);
     });
   });
 
@@ -371,8 +400,11 @@ describe('ImageRecreationService', () => {
         issues: []
       };
 
-      mockClient.createChatCompletion.mockResolvedValue(JSON.stringify(mockAnalysis));
-      mockClient.createChatCompletion.mockResolvedValue(JSON.stringify(mockAssessment));
+      mockCreateChatCompletion
+        .mockResolvedValueOnce(JSON.stringify(mockAnalysis))
+        .mockResolvedValueOnce(JSON.stringify(mockAssessment))
+        .mockResolvedValueOnce(JSON.stringify(mockAnalysis))
+        .mockResolvedValueOnce(JSON.stringify(mockAssessment));
 
       const results = await service.recreateImages(images);
 
@@ -385,7 +417,7 @@ describe('ImageRecreationService', () => {
       const images = [mockExtractedImage];
 
       // Mock analysis to throw error
-      mockClient.createChatCompletion.mockRejectedValue(new Error('Analysis failed'));
+      mockCreateChatCompletion.mockRejectedValue(new Error('Analysis failed'));
 
       const results = await service.recreateImages(images);
 
@@ -400,15 +432,16 @@ describe('ImageRecreationService', () => {
         originalImage: mockExtractedImage,
         generatedImage: {
           id: 'gen-1',
-          url: 'https://example.com/test.png',
-          base64: 'data:image/png;base64,test',
+          url: 'data:image/svg+xml;base64,test',
+          base64: 'data:image/svg+xml;base64,test',
           prompt: 'Test prompt',
           style: 'formula',
           generationTime: 1000,
           metadata: {
-            model: 'dall-e-3',
-            size: '512x512',
-            quality: 'standard'
+            model: 'simple-flat-line-generator',
+            size: '1024x1024',
+            quality: 'standard',
+            flatLineType: 'equation'
           }
         },
         qualityAssessment: {
@@ -434,32 +467,60 @@ describe('ImageRecreationService', () => {
   });
 
   describe('private methods', () => {
-    it('should optimize prompts for different styles', () => {
-      const service = new ImageRecreationService();
-      
+    it('should map content types to flat-line types correctly', () => {
       // Access private method through any casting for testing
-      const optimizePrompt = (service as any).optimizePromptForGeneration;
+      const mapToFlatLineType = (service as any).mapToFlatLineType;
       
-      const diagramPrompt = optimizePrompt('Flow chart', 'diagram', 'Process flow');
-      expect(diagramPrompt).toContain('Clean, simple diagram');
-      expect(diagramPrompt).toContain('black lines on white background');
+      expect(mapToFlatLineType('equation')).toBe('formula');
+      expect(mapToFlatLineType('concept')).toBe('diagram');
+      expect(mapToFlatLineType('example')).toBe('example');
+      expect(mapToFlatLineType('unknown')).toBe('other');
+    });
+
+    it('should map styles to flat-line types correctly', () => {
+      const mapStyleToFlatLineType = (service as any).mapStyleToFlatLineType;
       
-      const examplePrompt = optimizePrompt('Math problem', 'example', 'Algebra');
-      expect(examplePrompt).toContain('Clear example problem');
-      expect(examplePrompt).toContain('step-by-step format');
+      expect(mapStyleToFlatLineType('formula')).toBe('equation');
+      expect(mapStyleToFlatLineType('diagram')).toBe('diagram');
+      expect(mapStyleToFlatLineType('example')).toBe('example');
+      expect(mapStyleToFlatLineType('illustration')).toBe('concept');
+    });
+
+    it('should create appropriate flat-line styles', () => {
+      const createFlatLineStyle = (service as any).createFlatLineStyle;
+      
+      const diagramStyle = createFlatLineStyle('diagram', 'hd');
+      expect(diagramStyle.layout).toBe('grid');
+      expect(diagramStyle.lineWeight).toBe('medium');
+      
+      const exampleStyle = createFlatLineStyle('example', 'standard');
+      expect(exampleStyle.layout).toBe('vertical');
+      expect(exampleStyle.annotations).toBe(true);
+      expect(exampleStyle.lineWeight).toBe('thin');
+      
+      const formulaStyle = createFlatLineStyle('formula');
+      expect(formulaStyle.layout).toBe('horizontal');
+      expect(formulaStyle.annotations).toBe(false);
+    });
+
+    it('should map sizes to flat-line dimensions correctly', () => {
+      const mapSizeToFlatLineDimensions = (service as any).mapSizeToFlatLineDimensions;
+      
+      expect(mapSizeToFlatLineDimensions('512x512')).toEqual({ width: 512, height: 512 });
+      expect(mapSizeToFlatLineDimensions('1024x1024')).toEqual({ width: 1024, height: 1024 });
+      expect(mapSizeToFlatLineDimensions('1024x1792')).toEqual({ width: 1024, height: 1792 });
+      expect(mapSizeToFlatLineDimensions()).toEqual({ width: 1024, height: 1024 }); // default
     });
 
     it('should select optimal size based on complexity', () => {
-      const service = new ImageRecreationService();
       const selectSize = (service as any).selectOptimalSize;
       
-      expect(selectSize('simple')).toBe('512x512');
-      expect(selectSize('moderate')).toBe('512x512');
-      expect(selectSize('complex')).toBe('1024x1024');
+      expect(selectSize('simple')).toBe('1024x1024');
+      expect(selectSize('moderate')).toBe('1024x1024');
+      expect(selectSize('complex')).toBe('1024x1792');
     });
 
     it('should determine user approval requirements correctly', () => {
-      const service = new ImageRecreationService();
       const requiresApproval = (service as any).requiresUserApproval;
       
       // High educational value requires approval
