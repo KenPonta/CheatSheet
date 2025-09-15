@@ -1,6 +1,18 @@
 "use client"
 
 import React, { useState, useCallback } from "react"
+// Temporary fallback for Vercel deployment
+const apiClient = {
+  post: async (endpoint: string, data: any) => {
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    return response.json();
+  }
+};
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -275,20 +287,7 @@ export function CompactStudyGenerator() {
         message: 'Generating compact study guide...'
       })
 
-      const response = await fetch("/api/generate-compact-study", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(requestData),
-      })
-
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.error || "Failed to generate compact study guide")
-      }
-
-      const data: CompactStudyResponse = await response.json()
+      const data: CompactStudyResponse = await apiClient.post("/api/generate-compact-study", requestData)
       
       setResults(data)
       setShowResults(true)
@@ -432,11 +431,7 @@ export function CompactStudyGenerator() {
 
   const clearCache = async () => {
     try {
-      const response = await fetch('/api/generate-compact-study/clear-cache', {
-        method: 'POST'
-      });
-      
-      const result = await response.json();
+      const result = await apiClient.post('/api/generate-compact-study/clear-cache', {});
       
       if (result.success) {
         setWarnings(prev => [...prev, 'File processing cache cleared successfully']);

@@ -1,51 +1,172 @@
 # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
-# dependencies
+# Dependencies
 /node_modules
+/.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnpm-debug.log*
 
-# next.js
+# Next.js
 /.next/
 /out/
+.next/
 
-# production
+# Production builds
 /build
+/dist
 
-# debug
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Debug logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+lerna-debug.log*
 .pnpm-debug.log*
 
-# env files
-.env*
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-# vercel
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env.example
+
+# Vercel
 .vercel
 
-# typescript
+# TypeScript
 *.tsbuildinfo
 next-env.d.ts
+*.d.ts.map
 
-# temporary files
+# Testing
+/coverage
+/.nyc_output
+*.lcov
+.jest-cache/
+
+# Temporary files
 /tmp/
 *.tmp
 *.temp
+.cache/
 
-# OS files
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
+Desktop.ini
 
-# IDE files
+# IDE and editor files
 .vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
 .idea/
+*.swp
+*.swo
+*~
 
-# test outputs
-coverage/
+# Python virtual environment (if using Python backend)
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# LaTeX temporary files
+*.aux
 *.log
+*.out
+*.toc
+*.fdb_latexmk
+*.fls
+*.synctex.gz
 
-# build artifacts
-dist/
-build/
+# PDF processing temporary files
+/pdf-temp/
+/latex-temp/
 
-# archive (optional - uncomment if you don't want to track archived files)
+# Canvas and image processing cache
+/canvas-cache/
+/image-cache/
+
+# Puppeteer cache
+.puppeteer/
+
+# Sentry
+.sentryclirc
+
+# PostHog
+posthog-*.json
+
+# Memory dumps
+*.heapsnapshot
+
+# ESLint cache
+.eslintcache
+
+# Stylelint cache
+.stylelintcache
+
+# Optional npm cache directory
+.npm
+
+# Optional eslint cache
+.eslintcache
+
+# Microbundle cache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
+
+# Optional REPL history
+.node_repl_history
+
+# Output of 'npm pack'
+*.tgz
+
+# Yarn Integrity file
+.yarn-integrity
+
+# parcel-bundler cache (https://parceljs.org/)
+.parcel-cache
+
+# Stores VSCode versions used for testing VSCode extensions
+.vscode-test
+
+# Archive folder (uncomment if you don't want to track archived files)
 # /archive/
+
+# Local development files
+/local/
+/dev-temp/
+
+# Backup files
+*.bak
+*.backup
+
+# Lock files (choose one based on your package manager)
+# package-lock.json  # Uncomment if using yarn or pnpm exclusively
+# yarn.lock          # Uncomment if using npm or pnpm exclusively
+# pnpm-lock.yaml     # Uncomment if using npm or yarn exclusively

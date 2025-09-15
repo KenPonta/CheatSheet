@@ -65,6 +65,28 @@ let _env: z.infer<typeof envSchema> | null = null;
 function validateEnv() {
   if (_env) return _env;
   
+  // Skip validation during build time
+  if (process.env.NEXT_PHASE === 'phase-production-build' || 
+      process.env.npm_lifecycle_event === 'build' ||
+      process.argv.includes('build')) {
+    console.log('⚠️ Skipping environment validation during build phase');
+    _env = {
+      OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+      OPENAI_MODEL: 'gpt-4o',
+      OPENAI_MAX_TOKENS: 4000,
+      NODE_ENV: (process.env.NODE_ENV as any) || 'production',
+      MAX_FILE_SIZE: 50000000,
+      MAX_FILES_PER_REQUEST: 10,
+      UPLOAD_TIMEOUT: 300000,
+      RATE_LIMIT_REQUESTS_PER_MINUTE: 60,
+      RATE_LIMIT_REQUESTS_PER_HOUR: 1000,
+      HEALTH_CHECK_INTERVAL: 30000,
+      HEALTH_CHECK_TIMEOUT: 5000,
+      POSTHOG_HOST: 'https://app.posthog.com',
+    } as any;
+    return _env;
+  }
+  
   try {
     _env = envSchema.parse(process.env);
     return _env;

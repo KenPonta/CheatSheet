@@ -6,7 +6,6 @@
  */
 
 import { useEffect } from 'react';
-import { initMonitoring } from '../backend/lib/monitoring';
 
 interface MonitoringProviderProps {
   children: React.ReactNode;
@@ -14,12 +13,25 @@ interface MonitoringProviderProps {
 
 export function MonitoringProvider({ children }: MonitoringProviderProps) {
   useEffect(() => {
-    // Initialize monitoring services on the client side
-    initMonitoring();
+    // Initialize basic client-side monitoring for Vercel deployment
+    try {
+      // Simple error tracking
+      window.addEventListener('error', (event) => {
+        console.error('Global error:', event.error);
+      });
+
+      window.addEventListener('unhandledrejection', (event) => {
+        console.error('Unhandled promise rejection:', event.reason);
+      });
+
+      console.log('Frontend monitoring initialized');
+    } catch (error) {
+      console.warn('Monitoring initialization failed:', error);
+    }
 
     // Cleanup function
     return () => {
-      // Monitoring cleanup is handled by the monitoring services themselves
+      // Basic cleanup
     };
   }, []);
 

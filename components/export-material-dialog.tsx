@@ -9,7 +9,13 @@ import { Label } from './ui/label'
 import { RadioGroup, RadioGroupItem } from './ui/radio-group'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card'
 import { Download, FileText, Globe, FileImage, Settings, Loader2 } from 'lucide-react'
-import { EnhancedExportOptions } from '../backend/lib/content-modification/export-service'
+// Temporary type definition for Vercel deployment
+interface EnhancedExportOptions {
+  format: 'pdf' | 'html' | 'markdown' | 'docx';
+  layout: 'compact' | 'standard';
+  includeImages: boolean;
+  includeAnswers: boolean;
+}
 
 interface ExportMaterialDialogProps {
   materialId: string

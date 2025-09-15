@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Remove standalone for Vercel deployment
   // Update paths for new structure
   pageExtensions: ['js', 'jsx', 'ts', 'tsx'],
   eslint: {
@@ -57,6 +58,7 @@ const nextConfig = {
   // Environment variable validation
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
+    BACKEND_URL: process.env.BACKEND_URL || 'http://localhost:4000',
   },
   // Webpack configuration for monitoring and Sharp compatibility
   webpack: (config, { isServer }) => {

@@ -4,9 +4,9 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install --legacy-peer-deps",
   "functions": {
-    "app/api/**/*.ts": {
-      "maxDuration": 300,
-      "memory": 512
+    "app/api/health/**/*.ts": {
+      "maxDuration": 30,
+      "memory": 128
     }
   },
   "headers": [

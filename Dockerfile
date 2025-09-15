@@ -1,20 +1,33 @@
 # Multi-stage build for optimized production image
-FROM node:18-alpine AS base
+FROM node:18-slim AS base
 
-# Install system dependencies including LaTeX
-RUN apk add --no-cache \
-    texlive \
+# Install essential system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    bash \
+    python3 \
+    python3-pip \
+    build-essential \
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev \
+    libpixman-1-dev \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# LaTeX for PDF generation (minimal installation)
+RUN apt-get update && apt-get install -y \
+    texlive-latex-base \
     texlive-latex-extra \
     texlive-fonts-recommended \
     texlive-fonts-extra \
-    texmf-dist-latexextra \
-    texmf-dist-mathextra \
-    curl \
-    bash \
-    && rm -rf /var/cache/apk/*
+    python3-pygments \
+    && rm -rf /var/lib/apt/lists/*
 
-# Install dependencies only when needed
-FROM base AS deps
+# Install dependencies and build in single stage
+FROM base AS builder
 WORKDIR /app
 
 # Copy package files
@@ -22,18 +35,20 @@ COPY package*.json ./
 COPY pnpm-lock.yaml* ./
 
 # Install dependencies
-RUN npm install -g pnpm && pnpm install --frozen-lockfile
+RUN npm install -g pnpm && pnpm install --no-frozen-lockfile
 
-# Rebuild the source code only when needed
-FROM base AS builder
-WORKDIR /app
+# Rebuild native modules for the current platform
+RUN pnpm rebuild canvas
 
-COPY --from=deps /app/node_modules ./node_modules
+# Copy source code
 COPY . .
 
 # Build the application
 ENV NEXT_TELEMETRY_DISABLED 1
-RUN npm install -g pnpm && pnpm build
+ENV NODE_ENV production
+ENV OPENAI_API_KEY sk-build-placeholder
+ENV NEXT_PHASE phase-production-build
+RUN pnpm build
 
 # Production image, copy all the files and run next
 FROM base AS runner
@@ -50,6 +65,8 @@ RUN adduser --system --uid 1001 nextjs
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
+# Copy node_modules for native dependencies like canvas
+COPY --from=builder --chown=nextjs:nodejs /app/node_modules ./node_modules
 
 # Create necessary directories
 RUN mkdir -p /tmp/cheesesheet_latex && chown nextjs:nodejs /tmp/cheesesheet_latex

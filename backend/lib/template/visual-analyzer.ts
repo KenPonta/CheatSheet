@@ -3,7 +3,18 @@
  * Extracts visual layout, typography, spacing, and color schemes from PDF/image files
  */
 
-import { Canvas, createCanvas, loadImage, CanvasRenderingContext2D } from 'canvas';
+// Conditional canvas import to avoid build-time issues
+let Canvas: any, createCanvas: any, loadImage: any, CanvasRenderingContext2D: any;
+
+try {
+  const canvasModule = require('canvas');
+  Canvas = canvasModule.Canvas;
+  createCanvas = canvasModule.createCanvas;
+  loadImage = canvasModule.loadImage;
+  CanvasRenderingContext2D = canvasModule.CanvasRenderingContext2D;
+} catch (error) {
+  console.warn('Canvas module not available, visual analysis will use fallback mode');
+}
 import { ExtractedContent, ExtractedImage } from '../ai/types';
 import {
   VisualPattern,
@@ -66,13 +77,18 @@ export interface ContentDensityAnalysis {
 }
 
 export class VisualAnalyzer {
-  private canvas: Canvas;
-  private ctx: CanvasRenderingContext2D;
+  private canvas: any;
+  private ctx: any;
+  private canvasAvailable: boolean;
 
   constructor() {
-    // Initialize canvas for image analysis
-    this.canvas = createCanvas(800, 600);
-    this.ctx = this.canvas.getContext('2d');
+    this.canvasAvailable = Boolean(createCanvas);
+    
+    if (this.canvasAvailable) {
+      // Initialize canvas for image analysis
+      this.canvas = createCanvas(800, 600);
+      this.ctx = this.canvas.getContext('2d');
+    }
   }
 
   /**
@@ -80,6 +96,12 @@ export class VisualAnalyzer {
    */
   async analyzeVisualElements(content: ExtractedContent): Promise<VisualAnalysisResult> {
     try {
+      // Check if canvas is available
+      if (!this.canvasAvailable) {
+        console.warn('Canvas not available, using text-based analysis fallback');
+        return this.performTextBasedAnalysis(content);
+      }
+
       // Convert first page to image for analysis if we have images
       const primaryImage = content.images.length > 0 ? content.images[0] : null;
       

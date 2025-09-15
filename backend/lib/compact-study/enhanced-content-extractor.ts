@@ -126,7 +126,6 @@ export class EnhancedContentExtractor {
   /**
    * Extract basic content using existing file processing infrastructure
    */
-  private 
   // ENHANCED_ERROR_HANDLING_V2
   private async safeExtractContent(file: File): Promise<ExtractedContent> {
     const maxRetries = 3;
