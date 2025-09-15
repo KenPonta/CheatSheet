@@ -165,7 +165,8 @@ describe('Frontend-Backend Integration', () => {
     });
   });
 
-  describe('Cheat Sheet Generation API', () => {
+  // Cheat Sheet Generation API tests removed as part of cleanup
+  describe.skip('Cheat Sheet Generation API (REMOVED)', () => {
     it('should successfully generate a cheat sheet', async () => {
       const mockGenerationRequest = {
         topics: [

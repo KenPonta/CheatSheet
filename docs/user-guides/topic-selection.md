@@ -2,7 +2,7 @@
 
 ## Overview
 
-The topic selection phase is where you review AI-organized content and choose what to include in your cheat sheet. This is your opportunity to customize the content while maintaining fidelity to your original materials.
+The topic selection phase is where you review AI-organized content and choose what to include in your compact study material. This is your opportunity to customize the content while maintaining fidelity to your original materials.
 
 ## Understanding AI Topic Organization
 
@@ -63,7 +63,7 @@ Main Topic: Calculus Derivatives
 ## Content Editing Guidelines
 
 ### When to Edit Content
-- **Too Verbose**: Content is longer than needed for cheat sheet format
+- **Too Verbose**: Content is longer than needed for compact format
 - **Missing Key Points**: Important information was not extracted properly
 - **Unclear Wording**: AI organization changed meaning or clarity
 - **Redundant Information**: Multiple topics contain the same information
@@ -183,7 +183,7 @@ When content comes from multiple files:
 **Solution**:
 - Edit content to correct errors while preserving meaning
 - Compare with original source files for accuracy
-- Simplify complex language for cheat sheet format
+- Simplify complex language for compact format
 - Add clarifying notes or examples where needed
 
 ## Tips for Different Subject Areas

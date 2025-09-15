@@ -2,6 +2,7 @@
 
 import { BaseFileProcessor } from '../base-processor';
 import { ExtractedContent, ProcessingResult, SupportedFileType, ExtractedImage, Heading, Section } from '../types';
+import '../../startup/sharp-init';
 
 interface PDFPageInfo {
   pageNumber: number;
@@ -284,20 +285,27 @@ export class PDFProcessor extends BaseFileProcessor {
 
   private async preprocessImageForOCR(imageBuffer: Buffer): Promise<Buffer> {
     try {
-      // Use Sharp for image preprocessing to improve OCR accuracy
-      const sharp = (await import('sharp')).default;
+      // Use our configured Sharp instance to avoid worker thread issues
+      const sharp = (await import('../../sharp-config')).default;
       
-      const processedImage = await sharp(imageBuffer)
+      const processedImage = await sharp(imageBuffer, {
+        // Disable worker threads to prevent module not found errors
+        sequentialRead: true,
+        limitInputPixels: false
+      })
         .greyscale() // Convert to grayscale
         .normalize() // Normalize contrast
         .sharpen() // Sharpen the image
         .resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true }) // Resize for optimal OCR
-        .png() // Convert to PNG for better OCR
+        .png({ compressionLevel: 0, quality: 100 }) // Convert to PNG for better OCR
         .toBuffer();
       
       return processedImage;
     } catch (error) {
-      console.warn('Image preprocessing failed, using original:', error);
+      console.warn('Sharp image preprocessing failed:', error);
+      
+      // If Sharp fails completely, skip preprocessing and return original buffer
+      // This ensures OCR can still proceed even if image enhancement fails
       return imageBuffer;
     }
   }

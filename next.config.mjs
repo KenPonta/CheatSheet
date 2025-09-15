@@ -19,6 +19,9 @@ const nextConfig = {
     // Enable webpack cache for faster builds
     webpackBuildWorker: true,
   },
+  
+  // Sharp configuration to prevent worker thread issues
+  serverComponentsExternalPackages: ['sharp'],
   // Reduce bundle size and memory usage
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production',
@@ -55,12 +58,18 @@ const nextConfig = {
   env: {
     CUSTOM_KEY: process.env.CUSTOM_KEY,
   },
-  // Webpack configuration for monitoring
+  // Webpack configuration for monitoring and Sharp compatibility
   webpack: (config, { isServer }) => {
     // Add source maps in production for better error tracking
     if (!isServer) {
       config.devtool = 'source-map';
     }
+    
+    // Fix Sharp worker script issue
+    config.externals = config.externals || [];
+    config.externals.push({
+      sharp: 'commonjs sharp'
+    });
     
     return config;
   },

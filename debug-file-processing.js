@@ -1,102 +1,93 @@
-// File Processing Diagnostic Tool
-// Run this in your browser console to debug file upload issues
+#!/usr/bin/env node
 
-function debugFileProcessing(files) {
-  console.log('=== File Processing Debug ===');
-  
-  if (!files || files.length === 0) {
-    console.log('❌ No files provided');
-    return;
-  }
+/**
+ * Debug script to test file processing for compact study generator
+ */
 
-  files.forEach((file, index) => {
-    console.log(`\n--- File ${index + 1}: ${file.name} ---`);
-    console.log(`Size: ${formatFileSize(file.size)}`);
-    console.log(`Type: ${file.type || 'Unknown'}`);
-    console.log(`Extension: .${getFileExtension(file.name)}`);
-    
-    // Check file type support
-    const extension = getFileExtension(file.name);
-    const supportedExtensions = ['pdf', 'docx', 'xlsx', 'pptx', 'txt', 'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'];
-    
-    if (!supportedExtensions.includes(extension)) {
-      console.log('❌ UNSUPPORTED FILE TYPE');
-      console.log('💡 Supported: PDF, DOCX, XLSX, PPTX, TXT, JPG, PNG, etc.');
-      
-      // Check for legacy Office formats
-      if (['doc', 'ppt', 'xls'].includes(extension)) {
-        console.log('🔄 LEGACY OFFICE FORMAT DETECTED');
-        console.log(`💡 Convert .${extension} to .${extension}x format`);
+const fs = require('fs');
+const path = require('path');
+
+async function debugFileProcessing() {
+  console.log('🔍 Debugging file processing for compact study generator...\n');
+
+  try {
+    // Test with different files to see what content is extracted
+    const testFiles = [
+      'extracted-05 Counting_01_student.txt',
+      'extracted-07 Properbility_01_student.txt', 
+      'extracted-09 Relations_01_Student.txt'
+    ];
+
+    for (const fileName of testFiles) {
+      if (!fs.existsSync(fileName)) {
+        console.log(`⚠️ Test file ${fileName} not found, skipping...`);
+        continue;
       }
-      return;
+
+      console.log(`🔍 Debugging file: ${fileName}`);
+      
+      // Read the file content
+      const fileContent = fs.readFileSync(fileName, 'utf8');
+      console.log(`   - File size: ${fileContent.length} characters`);
+      console.log(`   - Content preview: ${fileContent.substring(0, 100)}...`);
+      
+      // Create test payload for debug endpoint
+      const testPayload = {
+        fileName: fileName,
+        content: Buffer.from(fileContent).toString('base64'),
+        type: fileName.includes('Counting') ? 'general' : 
+              fileName.includes('Properbility') ? 'probability' : 
+              fileName.includes('Relations') ? 'relations' : 'general'
+      };
+
+      console.log(`🔄 Testing file processing for ${fileName}...`);
+      
+      try {
+        const response = await fetch('http://localhost:3000/api/generate-compact-study/debug-file', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(testPayload)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error(`❌ Debug request failed for ${fileName}:`, errorData);
+          continue;
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+          console.log(`✅ Debug results for ${fileName}:`);
+          console.log(`   - File info: ${result.results.fileSize} bytes, ${result.results.fileType}`);
+          
+          // Check each processing method
+          Object.entries(result.results.processingResults).forEach(([method, methodResult]) => {
+            console.log(`   - ${method}:`);
+            if (methodResult.error) {
+              console.log(`     ❌ Error: ${methodResult.error}`);
+            } else {
+              console.log(`     ✅ Success: ${methodResult.textLength} chars`);
+              console.log(`     📄 Preview: ${methodResult.textPreview?.substring(0, 80)}...`);
+            }
+          });
+        } else {
+          console.error(`❌ Debug failed for ${fileName}:`, result.error);
+        }
+        
+      } catch (fetchError) {
+        console.error(`💥 Network error for ${fileName}:`, fetchError.message);
+      }
+      
+      console.log(''); // Empty line for readability
     }
-    
-    // Check file size limits
-    const sizeLimits = {
-      pdf: 50 * 1024 * 1024,
-      docx: 25 * 1024 * 1024,
-      xlsx: 25 * 1024 * 1024,
-      pptx: 50 * 1024 * 1024,
-      txt: 5 * 1024 * 1024,
-      jpg: 10 * 1024 * 1024,
-      jpeg: 10 * 1024 * 1024,
-      png: 10 * 1024 * 1024,
-      gif: 10 * 1024 * 1024,
-      bmp: 10 * 1024 * 1024,
-      webp: 10 * 1024 * 1024
-    };
-    
-    const maxSize = sizeLimits[extension];
-    if (maxSize && file.size > maxSize) {
-      console.log(`❌ FILE TOO LARGE: ${formatFileSize(file.size)} > ${formatFileSize(maxSize)}`);
-      console.log('💡 Compress the file or split into smaller parts');
-      return;
-    }
-    
-    // Check for empty files
-    if (file.size === 0) {
-      console.log('❌ EMPTY FILE');
-      console.log('💡 File has no content');
-      return;
-    }
-    
-    // Check MIME type
-    const expectedMimeTypes = {
-      pdf: ['application/pdf'],
-      docx: ['application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-      xlsx: ['application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
-      pptx: ['application/vnd.openxmlformats-officedocument.presentationml.presentation'],
-      txt: ['text/plain'],
-      jpg: ['image/jpeg'],
-      jpeg: ['image/jpeg'],
-      png: ['image/png'],
-      gif: ['image/gif'],
-      bmp: ['image/bmp'],
-      webp: ['image/webp']
-    };
-    
-    const expected = expectedMimeTypes[extension];
-    if (expected && file.type && !expected.includes(file.type)) {
-      console.log(`⚠️  MIME TYPE MISMATCH: ${file.type}`);
-      console.log(`💡 Expected: ${expected.join(' or ')}`);
-    }
-    
-    console.log('✅ File appears valid for processing');
-  });
+
+  } catch (error) {
+    console.error('💥 Debug script failed:', error);
+  }
 }
 
-function getFileExtension(filename) {
-  return filename.toLowerCase().split('.').pop() || '';
-}
-
-function formatFileSize(bytes) {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
-
-// Usage: debugFileProcessing(Array.from(fileInput.files))
-console.log('File Processing Debugger loaded!');
-console.log('Usage: debugFileProcessing(Array.from(fileInput.files))');
+// Run the debug
+debugFileProcessing().catch(console.error);

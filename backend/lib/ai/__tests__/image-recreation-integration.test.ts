@@ -24,15 +24,22 @@ describe('Image Recreation Integration', () => {
         originalImage: mockExtractedImage,
         generatedImage: {
           id: 'gen-1',
-          url: 'https://example.com/generated.png',
-          base64: 'data:image/png;base64,generated',
+          url: 'data:image/svg+xml;base64,generated',
+          base64: 'data:image/svg+xml;base64,generated',
           prompt: 'Clean mathematical formula',
           style: 'formula',
           generationTime: 2000,
           metadata: {
-            model: 'dall-e-3',
-            size: '512x512',
-            quality: 'standard'
+            model: 'simple-flat-line-generator',
+            size: '1024x1024',
+            quality: 'standard',
+            flatLineType: 'equation',
+            flatLineStyle: {
+              lineWeight: 'medium',
+              colorScheme: 'monochrome',
+              layout: 'horizontal',
+              annotations: false
+            }
           }
         },
         qualityAssessment: {
@@ -66,15 +73,22 @@ describe('Image Recreation Integration', () => {
         originalImage: mockExtractedImage,
         recreatedImage: {
           id: 'gen-1',
-          url: 'https://example.com/generated.png',
-          base64: 'data:image/png;base64,generated',
+          url: 'data:image/svg+xml;base64,generated',
+          base64: 'data:image/svg+xml;base64,generated',
           prompt: 'Clean mathematical formula',
           style: 'formula',
           generationTime: 2000,
           metadata: {
-            model: 'dall-e-3',
-            size: '512x512',
-            quality: 'standard'
+            model: 'simple-flat-line-generator',
+            size: '1024x1024',
+            quality: 'standard',
+            flatLineType: 'equation',
+            flatLineStyle: {
+              lineWeight: 'medium',
+              colorScheme: 'monochrome',
+              layout: 'horizontal',
+              annotations: false
+            }
           }
         },
         qualityAssessment: {
@@ -152,14 +166,14 @@ describe('Image Recreation Integration', () => {
       const generationRequest = {
         description: 'Mathematical formula diagram',
         style: 'formula' as const,
-        context: 'Educational content for cheat sheet',
+        context: 'Educational content for study material',
         originalImage: mockExtractedImage,
-        size: '512x512' as const,
+        size: '1024x1024' as const,
         quality: 'standard' as const
       };
 
       expect(generationRequest.style).toBe('formula');
-      expect(generationRequest.size).toBe('512x512');
+      expect(generationRequest.size).toBe('1024x1024');
       expect(generationRequest.quality).toBe('standard');
       expect(generationRequest.originalImage).toBe(mockExtractedImage);
     });
@@ -178,8 +192,8 @@ describe('Image Recreation Integration', () => {
       });
     });
 
-    it('should support different image sizes', () => {
-      const sizes = ['256x256', '512x512', '1024x1024'] as const;
+    it('should support different image sizes for flat-line generation', () => {
+      const sizes = ['1024x1024', '1024x1792', '1792x1024'] as const;
       
       sizes.forEach(size => {
         const request = {
@@ -189,7 +203,7 @@ describe('Image Recreation Integration', () => {
           size
         };
 
-        expect(['256x256', '512x512', '1024x1024']).toContain(request.size);
+        expect(['1024x1024', '1024x1792', '1792x1024']).toContain(request.size);
       });
     });
   });

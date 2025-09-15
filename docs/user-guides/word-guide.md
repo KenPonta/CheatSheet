@@ -2,7 +2,7 @@
 
 ## Overview
 
-The cheat sheet generator fully processes Microsoft Word documents (.docx format), extracting text, formatting, images, and document structure.
+The study material generator fully processes Microsoft Word documents (.docx format), extracting text, formatting, images, and document structure.
 
 ## Supported Formats
 
@@ -73,7 +73,7 @@ The cheat sheet generator fully processes Microsoft Word documents (.docx format
 
 ### Missing Formatting
 - **Issue**: Some formatting doesn't appear in extracted content
-- **Solution**: Complex formatting may be simplified for cheat sheet layout
+- **Solution**: Complex formatting may be simplified for compact layout
 - **Workaround**: Focus on content structure rather than visual formatting
 
 ### Image Quality Issues

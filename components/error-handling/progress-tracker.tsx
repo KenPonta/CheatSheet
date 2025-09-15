@@ -58,13 +58,13 @@ const STAGE_INFO: Record<ProcessingStage, {
   'content-organization': {
     label: 'Content Organization',
     icon: <Layout className="h-4 w-4" />,
-    description: 'Structuring content for cheat sheet',
+    description: 'Structuring content for study guide',
     estimatedDuration: 5
   },
   'layout-generation': {
     label: 'Layout Generation',
     icon: <Layout className="h-4 w-4" />,
-    description: 'Creating cheat sheet layout',
+    description: 'Creating study guide layout',
     estimatedDuration: 7
   },
   'pdf-generation': {

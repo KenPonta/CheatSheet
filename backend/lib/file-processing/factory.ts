@@ -24,7 +24,8 @@ export class FileProcessorFactory {
    * Create a processor for the given file
    */
   static createProcessor(file: File): FileProcessor | null {
-    const fileType = this.detectFileType(file);
+    const validation = FileValidator.validateFileEnhanced(file);
+    const fileType = validation.fileType;
     if (!fileType) {
       return null;
     }
@@ -76,7 +77,7 @@ export class FileProcessorFactory {
    */
   static async processFile(file: File): Promise<ProcessingResult> {
     // First validate the file
-    const validation = this.validateFileEnhanced(file);
+    const validation = FileValidator.validateFileEnhanced(file);
     
     if (!validation.isValid) {
       return {

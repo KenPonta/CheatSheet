@@ -22,7 +22,7 @@ const helpContent = {
     steps: [
       {
         title: 'Upload Reference File',
-        content: 'Start by uploading a high-quality reference cheat sheet. Supported formats include PDF, PNG, JPG, and other image formats. For best results, use clear, high-resolution files.',
+        content: 'Start by uploading your study materials. Supported formats include PDF, Word documents, PowerPoint, Excel, images, and text files. For best results, use clear, high-quality files.',
         tips: [
           'Use digital files rather than scanned copies when possible',
           'Ensure text is clearly readable in the reference',

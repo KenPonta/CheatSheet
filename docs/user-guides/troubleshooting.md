@@ -191,7 +191,7 @@
    - Replace text with visual summaries where possible
 
 #### Poor Layout or Readability
-**Symptoms**: Generated cheat sheet is hard to read or poorly formatted
+**Symptoms**: Generated study material is hard to read or poorly formatted
 **Causes**:
 - Text too small or too large
 - Poor spacing between elements

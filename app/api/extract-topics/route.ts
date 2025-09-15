@@ -78,6 +78,8 @@ export async function POST(request: NextRequest) {
     // Try CPU-optimized processing first, fallback to standard processing
     try {
       console.log('🔧 Attempting CPU-optimized processing...');
+      console.log('📁 Files to process:', files.map(f => ({ name: f.name, type: f.type, size: f.size })));
+      
       const cpuProcessor = createCPUOptimizedProcessor({
         chunkSize: 32 * 1024, // 32KB chunks for very low memory usage
         maxMemoryUsage: 100 * 1024 * 1024, // 100MB max memory
@@ -97,12 +99,22 @@ export async function POST(request: NextRequest) {
           contentLength: r.content?.length 
         })));
         
+        // Log detailed error information for failed files
+        const failedResults = cpuResults.filter(result => !result.success);
+        if (failedResults.length > 0) {
+          console.log('❌ Failed CPU processing details:');
+          failedResults.forEach(result => {
+            console.log(`  - ${result.fileName}: ${result.error}`);
+          });
+        }
+        
         // Check if any files were successfully processed
         const successfulResults = cpuResults.filter(result => result.success);
         
         if (successfulResults.length === 0) {
           console.log('❌ CPU-optimized processing failed for all files');
-          throw new Error('CPU-optimized processing failed for all files');
+          const allErrors = failedResults.map(r => `${r.fileName}: ${r.error}`).join('; ');
+          throw new Error(`CPU-optimized processing failed for all files: ${allErrors}`);
         }
         
         // Convert CPU processor results to expected format
@@ -160,7 +172,28 @@ export async function POST(request: NextRequest) {
       } catch (standardError) {
         console.error('❌ Both CPU-optimized and standard processing failed:', standardError);
         console.error('Standard error stack:', standardError.stack);
-        throw new Error(`File processing failed: ${standardError.message}`);
+        
+        // If memory management is causing issues, try one more time without it
+        if (standardError.message.includes('memory') || standardError.message.includes('Memory')) {
+          console.log('🔄 Attempting processing without memory management...');
+          try {
+            const noMemoryResults = await FileProcessing.processMultipleFilesEnhanced(files, {
+              enableOCR: false,
+              preserveFormatting: false,
+              extractImages: false,
+              enableProgressTracking: false,
+              manageMemory: false // Disable memory management
+            });
+            
+            processingResults = noMemoryResults;
+            console.log(`✅ Processing without memory management succeeded for ${noMemoryResults.filter(r => r.success).length}/${files.length} files`);
+          } catch (finalError) {
+            console.error('❌ All processing attempts failed:', finalError);
+            throw new Error(`File processing failed: ${finalError.message}`);
+          }
+        } else {
+          throw new Error(`File processing failed: ${standardError.message}`);
+        }
       }
     }
 
@@ -354,8 +387,8 @@ export async function POST(request: NextRequest) {
     let userFriendlyMessage = "Failed to extract topics from files"
     
     // Handle memory-related errors
-    if (errorMessage.includes('Memory usage') || errorMessage.includes('memory')) {
-      userFriendlyMessage = "System memory is critically low. Please close other applications and try again with fewer or smaller files."
+    if (errorMessage.includes('Memory usage') || errorMessage.includes('memory') || errorMessage.includes('exceed')) {
+      userFriendlyMessage = "The file is too large for current memory constraints. Try uploading smaller files or fewer files at once."
     }
     // Handle file format errors
     else if (errorMessage.includes('Unsupported') || errorMessage.includes('format')) {

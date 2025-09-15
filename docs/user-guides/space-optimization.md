@@ -2,7 +2,7 @@
 
 ## Overview
 
-The space optimization system ensures your cheat sheet makes the most efficient use of available space while maintaining readability and organization. It prevents both content overflow and under-utilization of pages.
+The space optimization system ensures your compact study material makes the most efficient use of available space while maintaining readability and organization. It prevents both content overflow and under-utilization of pages.
 
 ## Understanding Space Optimization
 
@@ -102,7 +102,7 @@ When using a reference template:
 
 ### Multi-Page Optimization
 
-For multi-page cheat sheets:
+For multi-page study materials:
 
 1. **Even Distribution**: Balances content across all pages
 2. **Logical Breaks**: Ensures topics don't split awkwardly

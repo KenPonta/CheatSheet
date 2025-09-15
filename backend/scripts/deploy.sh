@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Production deployment script for cheat sheet generator
+# Production deployment script for study material generator
 # This script handles the complete deployment process with safety checks
 
 set -e  # Exit on any error
@@ -165,7 +165,7 @@ notify_deployment() {
     if [ -n "$WEBHOOK_URL" ]; then
         curl -X POST "$WEBHOOK_URL" \
             -H "Content-Type: application/json" \
-            -d "{\"text\":\"🚀 Cheat Sheet Generator deployed to $DEPLOYMENT_ENV successfully\"}"
+            -d "{\"text\":\"🚀 Study Material Generator deployed to $DEPLOYMENT_ENV successfully\"}"
     fi
     
     print_status "Deployment notification sent"
@@ -185,7 +185,7 @@ rollback() {
 
 # Main deployment flow
 main() {
-    echo -e "${BLUE}🎯 Deploying Cheat Sheet Generator${NC}"
+    echo -e "${BLUE}🎯 Deploying Study Material Generator${NC}"
     echo -e "${BLUE}Environment: ${DEPLOYMENT_ENV}${NC}"
     echo -e "${BLUE}Timestamp: $(date)${NC}"
     echo ""

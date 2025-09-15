@@ -1,6 +1,6 @@
 # Memory Management Guide
 
-This guide helps you manage memory usage effectively while developing with the CheatSheet Creator.
+This guide helps you manage memory usage effectively while developing with the Study Material Generator.
 
 ## Quick Commands
 

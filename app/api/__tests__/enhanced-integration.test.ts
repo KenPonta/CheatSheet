@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import { NextRequest } from 'next/server';
 import { POST as extractTopicsPost } from '../extract-topics/route';
-import { POST as generateCheatSheetPost } from '../generate-cheatsheet/route';
+// generateCheatSheetPost removed as part of cleanup
 import { POST as spaceOptimizationPost } from '../space-optimization/route';
 import { POST as referenceFormatMatchingPost } from '../reference-format-matching/route';
 
@@ -286,59 +286,7 @@ describe('Enhanced Integration Tests', () => {
     });
   });
 
-  describe('Reference Format Matching', () => {
-    it('should apply reference format matching during generation', async () => {
-      const formData = new FormData();
-      
-      const requestData = {
-        topics: [
-          {
-            id: 'topic-1',
-            topic: 'JavaScript Basics',
-            content: 'Variables, functions, and control structures',
-            priority: 1
-          }
-        ],
-        config: {
-          paperSize: 'a4',
-          orientation: 'portrait',
-          columns: 2,
-          fontSize: 'medium'
-        },
-        enableReferenceFormatMatching: true,
-        userContent: [
-          {
-            text: 'Sample content',
-            images: [],
-            tables: [],
-            metadata: { name: 'test.pdf' },
-            structure: { headings: [], sections: [], hierarchy: 0 }
-          }
-        ]
-      };
-      
-      formData.append('data', JSON.stringify(requestData));
-      
-      const referenceFile = new File(['reference content'], 'reference.pdf', { 
-        type: 'application/pdf' 
-      });
-      formData.append('referenceTemplate', referenceFile);
-
-      const request = new NextRequest('http://localhost/api/generate-cheatsheet', {
-        method: 'POST',
-        body: formData
-      });
-
-      const response = await generateCheatSheetPost(request);
-      const data = await response.json();
-
-      expect(response.status).toBe(200);
-      expect(data.html).toBeDefined();
-      expect(data.formatMatching).toBeDefined();
-      expect(data.formatMatching.matchingScore).toBe(0.85);
-      expect(data.formatMatching.cssGenerated).toBe(true);
-    });
-  });
+  // Reference Format Matching tests removed as part of cheat sheet cleanup
 
   describe('Space Optimization API', () => {
     it('should calculate available space', async () => {
@@ -482,77 +430,5 @@ describe('Enhanced Integration Tests', () => {
     });
   });
 
-  describe('End-to-End Enhanced Workflow', () => {
-    it('should complete full workflow with space optimization and format matching', async () => {
-      // Step 1: Extract topics with space constraints
-      const extractFormData = new FormData();
-      const testFile = new File(['test content'], 'test.pdf', { type: 'application/pdf' });
-      extractFormData.append('files', testFile);
-      
-      const spaceConstraints = {
-        pageSize: 'a4',
-        fontSize: 'medium',
-        columns: 2,
-        availablePages: 2,
-        targetUtilization: 0.85
-      };
-      extractFormData.append('spaceConstraints', JSON.stringify(spaceConstraints));
-
-      const extractRequest = new NextRequest('http://localhost/api/extract-topics', {
-        method: 'POST',
-        body: extractFormData
-      });
-
-      const extractResponse = await extractTopicsPost(extractRequest);
-      const extractData = await extractResponse.json();
-
-      expect(extractResponse.status).toBe(200);
-      expect(extractData.spaceOptimization).toBeDefined();
-
-      // Step 2: Generate cheat sheet with reference format matching
-      const generateFormData = new FormData();
-      
-      const requestData = {
-        topics: extractData.topics,
-        config: {
-          paperSize: 'a4',
-          orientation: 'portrait',
-          columns: 2,
-          fontSize: 'medium',
-          pageCount: 2
-        },
-        enableReferenceFormatMatching: true,
-        enableContentValidation: true,
-        userContent: [
-          {
-            text: 'Sample content',
-            images: [],
-            tables: [],
-            metadata: { name: 'test.pdf' },
-            structure: { headings: [], sections: [], hierarchy: 0 }
-          }
-        ]
-      };
-      
-      generateFormData.append('data', JSON.stringify(requestData));
-      
-      const referenceFile = new File(['reference content'], 'reference.pdf', { 
-        type: 'application/pdf' 
-      });
-      generateFormData.append('referenceTemplate', referenceFile);
-
-      const generateRequest = new NextRequest('http://localhost/api/generate-cheatsheet', {
-        method: 'POST',
-        body: generateFormData
-      });
-
-      const generateResponse = await generateCheatSheetPost(generateRequest);
-      const generateData = await generateResponse.json();
-
-      expect(generateResponse.status).toBe(200);
-      expect(generateData.html).toBeDefined();
-      expect(generateData.formatMatching).toBeDefined();
-      expect(generateData.fidelityValidation).toBeDefined();
-    });
-  });
+  // End-to-End Enhanced Workflow tests removed as part of cheat sheet cleanup
 });

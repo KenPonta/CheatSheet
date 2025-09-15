@@ -2,7 +2,7 @@
 
 ## Overview
 
-This guide walks you through the entire process of creating a cheat sheet from your study materials, from initial file upload to final PDF generation.
+This guide walks you through the entire process of creating a compact study material from your source files, from initial file upload to final PDF generation.
 
 ## Workflow Steps
 
@@ -53,7 +53,7 @@ This guide walks you through the entire process of creating a cheat sheet from y
 ### Step 3: Topic Selection and Customization
 
 #### Interactive Selection
-- **Choose Topics**: Select which topics to include in your cheat sheet
+- **Choose Topics**: Select which topics to include in your compact study material
 - **Edit Content**: Modify topic content while preserving original meaning
 - **Organize Hierarchy**: Adjust topic order and grouping
 - **Preview Changes**: See real-time updates to page count estimates
@@ -63,7 +63,7 @@ This guide walks you through the entire process of creating a cheat sheet from y
 - **Page Size**: Choose paper size (A4, Letter, Legal, A3)
 - **Text Size**: Adjust font size for readability vs. content density
 - **Layout**: Select single or multi-column layouts
-- **Reference Template**: Upload existing cheat sheet as formatting reference
+- **Reference Template**: Upload existing study material as formatting reference
 
 #### Content Editing Guidelines
 - **Preserve Meaning**: Keep original concepts and terminology
@@ -82,7 +82,7 @@ This guide walks you through the entire process of creating a cheat sheet from y
 #### Manual Adjustments
 - **Content Overflow Warnings**: System alerts you if content won't fit
 - **Reduction Suggestions**: Options to reduce content or increase pages
-- **Layout Preview**: See how content will appear on final cheat sheet
+- **Layout Preview**: See how content will appear on final study material
 - **Fine-tuning**: Make final adjustments to content selection
 
 #### Reference Template Application
@@ -115,7 +115,7 @@ If you uploaded a reference template:
 - **Quality Optimization**: Final formatting and layout adjustments
 
 #### Final Review
-- **Preview PDF**: Review complete cheat sheet before download
+- **Preview PDF**: Review complete study material before download
 - **Quality Check**: Verify content accuracy and layout
 - **Print Test**: Check how it looks when printed
 - **Download**: Save final PDF to your device
@@ -158,7 +158,7 @@ If you uploaded a reference template:
 - **Test Layout**: Preview frequently to check formatting
 
 ### After Generation
-- **Review Thoroughly**: Check final cheat sheet carefully
+- **Review Thoroughly**: Check final study material carefully
 - **Print Test**: Test print quality and readability
 - **Save Originals**: Keep source files for future updates
 - **Gather Feedback**: Note what works well for future projects
@@ -195,7 +195,7 @@ If you uploaded a reference template:
 - **Multiple Versions**: Create different versions for different purposes
 - **Feedback Loop**: Use results to improve source materials
 - **Template Reuse**: Save successful layouts as templates
-- **Content Updates**: Easily update cheat sheets with new materials
+- **Content Updates**: Easily update study materials with new content
 
 ### Collaboration
 - **Shared Materials**: Combine materials from multiple sources

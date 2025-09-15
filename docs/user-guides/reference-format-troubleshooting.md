@@ -2,7 +2,7 @@
 
 ## Overview
 
-Reference format matching allows you to create cheat sheets that closely resemble existing templates. This guide helps you troubleshoot common issues and optimize the reference matching process.
+Reference format matching allows you to create compact study materials that closely resemble existing templates. This guide helps you troubleshoot common issues and optimize the reference matching process.
 
 ## Common Issues and Solutions
 
@@ -26,7 +26,7 @@ Reference format matching allows you to create cheat sheets that closely resembl
 1. Re-upload the reference file
 2. Check browser console for error messages
 3. Try a different reference file format
-4. Ensure reference contains actual cheat sheet content
+4. Ensure reference contains actual study material content
 ```
 
 #### Issue: Poor visual element extraction

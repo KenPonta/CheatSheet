@@ -1,4 +1,4 @@
-name: Deploy Cheat Sheet Generator
+name: Deploy Study Material Generator
 
 on:
   push:
@@ -203,7 +203,7 @@ jobs:
         if: success()
         with:
           status: success
-          text: '🚀 Cheat Sheet Generator deployed to production successfully!'
+          text: '🚀 Study Material Generator deployed to production successfully!'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           
@@ -212,7 +212,7 @@ jobs:
         if: failure()
         with:
           status: failure
-          text: '❌ Cheat Sheet Generator production deployment failed!'
+          text: '❌ Study Material Generator production deployment failed!'
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
 

@@ -92,7 +92,7 @@ export const SpaceOptimizationHelpTooltips = {
   availableSpace: (
     <HelpTooltip
       title="Available Space"
-      content="Total space calculated based on your page count, size, orientation, and formatting settings. This is the maximum content that can fit in your cheat sheet."
+      content="Layout optimization based on your column count, font size, margins, and formatting settings. This determines how content is arranged in your study guide."
     />
   ),
   
@@ -137,7 +137,7 @@ export const ReferenceFormatHelpTooltips = {
   referenceAnalysis: (
     <HelpTooltip
       title="Reference Format Analysis"
-      content="Upload a reference cheat sheet to analyze its visual layout, typography, spacing, and organization patterns. Your content will be formatted to match the reference style."
+      content="Configure image generation settings to automatically create visual representations for equations, concepts, and examples in your study materials."
     />
   ),
   
@@ -168,7 +168,7 @@ export const GeneralHelpTooltips = {
   preview: (
     <HelpTooltip
       title="Content Preview"
-      content="See how your cheat sheet will look before final generation. Preview updates in real-time as you make changes to topic selection and formatting."
+      content="See how your study guide will look before final generation. Preview updates in real-time as you make changes to layout and content settings."
     />
   ),
   

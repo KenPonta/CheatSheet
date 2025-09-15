@@ -10,7 +10,8 @@ import {
   ImageAnalysis
 } from '../types';
 import { createWorker, Worker, RecognizeResult } from 'tesseract.js';
-import sharp from 'sharp';
+import sharp from '../../sharp-config';
+import '../../startup/sharp-init';
 
 export class ImageProcessor extends BaseFileProcessor {
   private ocrWorker: Worker | null = null;
@@ -132,27 +133,40 @@ export class ImageProcessor extends BaseFileProcessor {
    */
   private async preprocessImage(buffer: Buffer): Promise<Buffer> {
     try {
-      return await sharp(buffer)
+      // Create Sharp instance with explicit configuration to avoid worker issues
+      const sharpInstance = sharp(buffer, {
+        // Disable worker threads to prevent module not found errors
+        sequentialRead: true,
+        limitInputPixels: false,
+        // Force single-threaded processing
+        density: 300
+      });
+      
+      const processedImage = await sharpInstance
         // Convert to grayscale for better text recognition
         .grayscale()
         // Enhance contrast
         .normalize()
-        // Resize if too small (minimum 300px width for good OCR)
-        .resize({ 
-          width: 1200, 
-          height: 1200, 
-          fit: 'inside',
-          withoutEnlargement: false 
-        })
-        // Sharpen for better text clarity
-        .sharpen()
-        // Convert to PNG for consistent processing
-        .png({ quality: 100 })
+        // Resize for optimal OCR
+        .resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true })
+        // Convert to PNG for better OCR
+        .png({ compressionLevel: 0, quality: 100 })
         .toBuffer();
+      
+      return processedImage;
     } catch (error) {
       // If preprocessing fails, return original buffer
       console.warn('Image preprocessing failed, using original:', error);
-      return buffer;
+      
+      // Try a simpler approach without Sharp if the main processing fails
+      try {
+        return await sharp(buffer)
+          .png()
+          .toBuffer();
+      } catch (fallbackError) {
+        console.warn('Sharp fallback also failed:', fallbackError);
+        return buffer;
+      }
     }
   }
 

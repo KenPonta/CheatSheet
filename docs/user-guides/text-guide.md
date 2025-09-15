@@ -2,7 +2,7 @@
 
 ## Overview
 
-The cheat sheet generator processes plain text files (.txt format) to extract and organize content for your study materials. Text files provide the most reliable content extraction with perfect accuracy.
+The study material generator processes plain text files (.txt format) to extract and organize content for your compact study materials. Text files provide the most reliable content extraction with perfect accuracy.
 
 ## Supported Text Formats
 

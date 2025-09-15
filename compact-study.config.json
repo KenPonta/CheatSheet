@@ -1,0 +1,44 @@
+{
+  "defaults": {
+    "layout": "compact",
+    "columns": 2,
+    "equations": "all",
+    "examples": "full",
+    "answers": "inline",
+    "fontSize": "10pt",
+    "margins": "narrow",
+    "outputFormat": "pdf"
+  },
+  "profiles": {
+    "ultra-compact": {
+      "layout": "compact",
+      "columns": 3,
+      "fontSize": "8pt",
+      "margins": "narrow",
+      "equations": "key",
+      "examples": "summary"
+    },
+    "readable": {
+      "layout": "standard",
+      "columns": 2,
+      "fontSize": "11pt",
+      "margins": "normal",
+      "equations": "all",
+      "examples": "full"
+    },
+    "print-friendly": {
+      "layout": "compact",
+      "columns": 2,
+      "fontSize": "10pt",
+      "margins": "narrow",
+      "outputFormat": "pdf",
+      "equations": "all",
+      "examples": "full"
+    }
+  },
+  "metadata": {
+    "version": "1.0.0",
+    "createdAt": "2025-09-12T18:28:03.270Z",
+    "lastModified": "2025-09-12T18:28:03.270Z"
+  }
+}

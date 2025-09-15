@@ -1,5 +1,5 @@
 {
-  "name": "my-v0-project",
+  "name": "study-material-generator",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -59,6 +59,7 @@
     "@sentry/nextjs": "^10.5.0",
     "@sentry/profiling-node": "^10.5.0",
     "@types/puppeteer": "^5.4.7",
+    "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.4.20",
     "canvas": "^3.2.0",
     "class-variance-authority": "^0.7.1",
@@ -89,6 +90,7 @@
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
     "tesseract.js": "^6.0.1",
+    "uuid": "^13.0.0",
     "vaul": "^0.9.9",
     "xlsx": "^0.18.5",
     "zod": "3.25.67"
