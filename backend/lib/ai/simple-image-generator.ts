@@ -38,6 +38,17 @@ export interface FlatLineImageRequest {
   dimensions: ImageDimensions;
 }
 
+export interface EquationVisualizationData {
+  originalEquation: string;
+  equationType: string;
+  variables: string[];
+  constants: string[];
+  operations: string[];
+  explanation: string;
+  derivationSteps: string[];
+  context: string;
+}
+
 export interface ConceptData {
   title: string;
   elements: ConceptElement[];
@@ -268,7 +279,7 @@ export class SimpleImageGenerator {
   }
 
   /**
-   * Create equation visualization with mathematical notation
+   * Create comprehensive equation visualization with derivation and explanation
    */
   createEquationVisualization(equation: string, context: string, style: FlatLineStyle, dimensions: ImageDimensions): string {
     const strokeWidth = this.getStrokeWidth(style.lineWeight);
@@ -276,14 +287,229 @@ export class SimpleImageGenerator {
     
     let svg = this.createSVGHeader(dimensions);
     
-    // Simple equation rendering
-    const mainY = dimensions.height * 0.3;
-    svg += `<text x="20" y="${mainY}" font-family="serif" font-size="20" fill="${color}" text-anchor="start">`;
-    svg += this.escapeXML(equation);
-    svg += `</text>`;
+    // Parse equation and context to create educational visualization
+    const equationData = this.parseEquationForVisualization(equation, context);
+    
+    // Create comprehensive equation visualization
+    svg += this.renderEquationWithDerivation(equationData, style, dimensions, color, strokeWidth);
     
     svg += `</svg>`;
     return svg;
+  }
+
+  /**
+   * Parse equation and context to extract educational components
+   */
+  private parseEquationForVisualization(equation: string, context: string): EquationVisualizationData {
+    // Extract variables, constants, and operations from the equation
+    const variables = this.extractVariables(equation);
+    const operations = this.extractOperations(equation);
+    const constants = this.extractConstants(equation);
+    
+    // Determine equation type and create appropriate explanation
+    const equationType = this.determineEquationType(equation);
+    const explanation = this.generateEquationExplanation(equation, equationType, context);
+    const derivationSteps = this.generateDerivationSteps(equation, equationType);
+    
+    return {
+      originalEquation: equation,
+      equationType,
+      variables,
+      constants,
+      operations,
+      explanation,
+      derivationSteps,
+      context
+    };
+  }
+
+  /**
+   * Render equation with complete derivation and explanation
+   */
+  private renderEquationWithDerivation(
+    equationData: EquationVisualizationData, 
+    style: FlatLineStyle, 
+    dimensions: ImageDimensions, 
+    color: string, 
+    strokeWidth: number
+  ): string {
+    let svg = '';
+    const margin = 20;
+    const sectionHeight = dimensions.height / 4;
+    
+    // Title and context
+    svg += `<text x="${dimensions.width / 2}" y="20" font-family="sans-serif" font-size="14" font-weight="bold" fill="${color}" text-anchor="middle">Mathematical Equation Analysis</text>`;
+    svg += `<text x="${dimensions.width / 2}" y="35" font-family="sans-serif" font-size="10" fill="${color}" text-anchor="middle" opacity="0.7">${this.escapeXML(equationData.context)}</text>`;
+    
+    let currentY = 50;
+    
+    // Main equation with highlighting
+    svg += `<rect x="${margin}" y="${currentY}" width="${dimensions.width - 2 * margin}" height="${sectionHeight - 10}" fill="none" stroke="${color}" stroke-width="${strokeWidth}"/>`;
+    svg += `<text x="${margin + 10}" y="${currentY + 20}" font-family="sans-serif" font-size="12" font-weight="bold" fill="${color}">Equation:</text>`;
+    svg += `<text x="${margin + 10}" y="${currentY + 45}" font-family="serif" font-size="16" fill="${color}">${this.escapeXML(equationData.originalEquation)}</text>`;
+    
+    // Variable definitions
+    if (equationData.variables.length > 0) {
+      svg += `<text x="${margin + 10}" y="${currentY + 65}" font-family="sans-serif" font-size="10" fill="${color}" opacity="0.8">Variables: ${equationData.variables.join(', ')}</text>`;
+    }
+    
+    currentY += sectionHeight;
+    
+    // Explanation section
+    svg += `<rect x="${margin}" y="${currentY}" width="${dimensions.width - 2 * margin}" height="${sectionHeight - 10}" fill="none" stroke="${color}" stroke-width="${strokeWidth}"/>`;
+    svg += `<text x="${margin + 10}" y="${currentY + 20}" font-family="sans-serif" font-size="12" font-weight="bold" fill="${color}">Explanation:</text>`;
+    svg += this.addWrappedText(equationData.explanation, margin + 10, currentY + 35, dimensions.width - 2 * margin - 20, 11, color);
+    
+    currentY += sectionHeight;
+    
+    // Derivation steps
+    if (equationData.derivationSteps.length > 0) {
+      svg += `<rect x="${margin}" y="${currentY}" width="${dimensions.width - 2 * margin}" height="${sectionHeight - 10}" fill="none" stroke="${color}" stroke-width="${strokeWidth}"/>`;
+      svg += `<text x="${margin + 10}" y="${currentY + 20}" font-family="sans-serif" font-size="12" font-weight="bold" fill="${color}">Derivation Steps:</text>`;
+      
+      let stepY = currentY + 35;
+      equationData.derivationSteps.forEach((step, index) => {
+        if (stepY < currentY + sectionHeight - 20) {
+          svg += `<text x="${margin + 15}" y="${stepY}" font-family="sans-serif" font-size="10" fill="${color}">${index + 1}. ${this.escapeXML(step)}</text>`;
+          stepY += 15;
+        }
+      });
+    }
+    
+    currentY += sectionHeight;
+    
+    // Applications or examples
+    svg += `<rect x="${margin}" y="${currentY}" width="${dimensions.width - 2 * margin}" height="${dimensions.height - currentY - margin}" fill="none" stroke="${color}" stroke-width="${strokeWidth}"/>`;
+    svg += `<text x="${margin + 10}" y="${currentY + 20}" font-family="sans-serif" font-size="12" font-weight="bold" fill="${color}">When to Use:</text>`;
+    
+    const applications = this.generateEquationApplications(equationData.equationType);
+    svg += this.addWrappedText(applications, margin + 10, currentY + 35, dimensions.width - 2 * margin - 20, 11, color);
+    
+    return svg;
+  }
+
+  /**
+   * Extract variables from equation
+   */
+  private extractVariables(equation: string): string[] {
+    const variables = equation.match(/[a-zA-Z][a-zA-Z0-9_]*(?!\()/g) || [];
+    return [...new Set(variables)].filter(v => !['sin', 'cos', 'tan', 'log', 'ln', 'exp', 'sqrt'].includes(v));
+  }
+
+  /**
+   * Extract mathematical operations from equation
+   */
+  private extractOperations(equation: string): string[] {
+    const operations: string[] = [];
+    if (equation.includes('+')) operations.push('addition');
+    if (equation.includes('-')) operations.push('subtraction');
+    if (equation.includes('*') || equation.includes('×')) operations.push('multiplication');
+    if (equation.includes('/') || equation.includes('÷')) operations.push('division');
+    if (equation.includes('^') || equation.includes('**')) operations.push('exponentiation');
+    if (equation.includes('√')) operations.push('square root');
+    if (equation.includes('∫')) operations.push('integration');
+    if (equation.includes('∑')) operations.push('summation');
+    return operations;
+  }
+
+  /**
+   * Extract constants from equation
+   */
+  private extractConstants(equation: string): string[] {
+    const constants = equation.match(/\b\d+\.?\d*\b/g) || [];
+    const specialConstants: string[] = [];
+    if (equation.includes('π') || equation.includes('pi')) specialConstants.push('π');
+    if (equation.includes('e')) specialConstants.push('e');
+    return [...constants, ...specialConstants];
+  }
+
+  /**
+   * Determine equation type for appropriate explanation
+   */
+  private determineEquationType(equation: string): string {
+    if (equation.includes('=') && equation.includes('x²') || equation.includes('x^2')) return 'quadratic';
+    if (equation.includes('=') && equation.match(/[a-z]\s*=\s*[a-z]/)) return 'linear';
+    if (equation.includes('sin') || equation.includes('cos') || equation.includes('tan')) return 'trigonometric';
+    if (equation.includes('∫') || equation.includes('integral')) return 'integral';
+    if (equation.includes('d/dx') || equation.includes('derivative')) return 'derivative';
+    if (equation.includes('P(') || equation.includes('probability')) return 'probability';
+    if (equation.includes('∑') || equation.includes('sum')) return 'summation';
+    if (equation.includes('log') || equation.includes('ln')) return 'logarithmic';
+    if (equation.includes('^') || equation.includes('**')) return 'exponential';
+    return 'algebraic';
+  }
+
+  /**
+   * Generate explanation for equation type
+   */
+  private generateEquationExplanation(equation: string, type: string, context: string): string {
+    const explanations: Record<string, string> = {
+      'quadratic': 'This is a quadratic equation in the form ax² + bx + c = 0. It represents a parabola and can be solved using the quadratic formula, factoring, or completing the square.',
+      'linear': 'This is a linear equation representing a straight line. The solution shows the relationship between variables with a constant rate of change.',
+      'trigonometric': 'This equation involves trigonometric functions (sin, cos, tan) which relate angles to ratios in right triangles and periodic phenomena.',
+      'integral': 'This integral calculates the area under a curve or the accumulation of a quantity over an interval.',
+      'derivative': 'This derivative shows the rate of change or slope of a function at any given point.',
+      'probability': 'This probability equation calculates the likelihood of an event occurring, with values between 0 and 1.',
+      'summation': 'This summation adds up a series of terms according to a specific pattern or formula.',
+      'logarithmic': 'This logarithmic equation involves the inverse of exponential functions, useful for solving exponential growth/decay problems.',
+      'exponential': 'This exponential equation shows rapid growth or decay, where the variable appears in the exponent.',
+      'algebraic': 'This algebraic equation shows the relationship between variables using basic mathematical operations.'
+    };
+    
+    return explanations[type] || 'This mathematical equation expresses a relationship between variables and constants.';
+  }
+
+  /**
+   * Generate derivation steps for equation
+   */
+  private generateDerivationSteps(equation: string, type: string): string[] {
+    const steps: Record<string, string[]> = {
+      'quadratic': [
+        'Start with the general form: ax² + bx + c = 0',
+        'Apply the quadratic formula: x = (-b ± √(b² - 4ac)) / 2a',
+        'Calculate the discriminant: b² - 4ac',
+        'Solve for both possible values of x'
+      ],
+      'linear': [
+        'Isolate the variable on one side',
+        'Perform inverse operations',
+        'Simplify to get the solution'
+      ],
+      'trigonometric': [
+        'Identify the trigonometric function',
+        'Use trigonometric identities if needed',
+        'Solve within the given domain',
+        'Check for additional solutions'
+      ],
+      'probability': [
+        'Identify the sample space',
+        'Count favorable outcomes',
+        'Apply probability formula: P(E) = favorable/total',
+        'Express as fraction, decimal, or percentage'
+      ]
+    };
+    
+    return steps[type] || ['Identify known values', 'Apply appropriate formula', 'Solve step by step', 'Verify the solution'];
+  }
+
+  /**
+   * Generate applications for equation type
+   */
+  private generateEquationApplications(type: string): string {
+    const applications: Record<string, string> = {
+      'quadratic': 'Used in physics for projectile motion, economics for profit optimization, and engineering for structural analysis.',
+      'linear': 'Applied in business for cost analysis, physics for uniform motion, and everyday calculations.',
+      'trigonometric': 'Essential in engineering, physics wave analysis, navigation, and periodic phenomena modeling.',
+      'integral': 'Used to find areas, volumes, work done, and in probability for continuous distributions.',
+      'derivative': 'Applied in optimization problems, physics for velocity/acceleration, and rate of change analysis.',
+      'probability': 'Used in statistics, risk analysis, quality control, and decision-making processes.',
+      'summation': 'Applied in series analysis, financial calculations, and discrete mathematics.',
+      'logarithmic': 'Used in exponential growth/decay, pH calculations, decibel measurements, and data analysis.',
+      'exponential': 'Applied in population growth, radioactive decay, compound interest, and bacterial growth.',
+      'algebraic': 'Fundamental for solving real-world problems involving unknown quantities and relationships.'
+    };
+    
+    return applications[type] || 'This equation type has various applications in mathematics, science, and engineering.';
   }
 
   /**

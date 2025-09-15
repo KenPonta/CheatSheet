@@ -63,6 +63,8 @@ interface CompactStudyConfig {
   };
   // Post-generation editing options
   enablePostGenerationEditing?: boolean;
+  // Content quality verification
+  enableContentVerification?: boolean;
 }
 
 interface ProcessingProgress {
@@ -144,7 +146,8 @@ export function CompactStudyGenerator() {
         annotations: true
       }
     },
-    enablePostGenerationEditing: true
+    enablePostGenerationEditing: true,
+    enableContentVerification: true
   })
   const [processingProgress, setProcessingProgress] = useState<ProcessingProgress | null>(null)
   const [processingErrors, setProcessingErrors] = useState<ProcessingError[]>([])
@@ -334,16 +337,33 @@ export function CompactStudyGenerator() {
 
   const downloadPDF = () => {
     if (results?.pdf) {
-      const buffer = Buffer.from(results.pdf, 'base64')
-      const blob = new Blob([buffer], { type: 'application/pdf' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = "compact-study-guide.pdf"
-      document.body.appendChild(a)
-      a.click()
-      document.body.removeChild(a)
-      URL.revokeObjectURL(url)
+      try {
+        // Convert base64 to binary data using browser-compatible method
+        const binaryString = atob(results.pdf)
+        const bytes = new Uint8Array(binaryString.length)
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i)
+        }
+        
+        const blob = new Blob([bytes], { type: 'application/pdf' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = "compact-study-guide.pdf"
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      } catch (error) {
+        console.error('Failed to download PDF:', error)
+        // Show user-friendly error message
+        setProcessingErrors(prev => [...prev, {
+          type: 'download',
+          message: 'Failed to download PDF. The file may be corrupted.',
+          recoverable: true,
+          suggestions: ['Try generating the study guide again', 'Use HTML or Markdown format instead']
+        }])
+      }
     }
   }
 
@@ -397,16 +417,17 @@ export function CompactStudyGenerator() {
           annotations: true
         }
       },
-      enablePostGenerationEditing: true
+      enablePostGenerationEditing: true,
+      enableContentVerification: true
     })
   }
 
   const openStudyMaterialEditor = (studyMaterialId: string) => {
     // Navigate to the study material editor with the generated content
-    // This would typically use Next.js router to navigate to an editor page
     console.log('Opening study material editor for:', studyMaterialId)
-    // For now, we'll show an alert - in a real implementation, this would navigate to the editor
-    alert(`Study material editor would open for ID: ${studyMaterialId}\n\nThis would allow you to:\n- Add/remove content sections\n- Regenerate images with different styles\n- Modify text and equations\n- Export customized versions`)
+    
+    // Navigate to the editor page
+    window.open(`/edit-study-material/${studyMaterialId}`, '_blank')
   }
 
   const clearCache = async () => {
@@ -451,8 +472,7 @@ export function CompactStudyGenerator() {
         <div className="container mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="font-serif text-3xl font-bold text-foreground">Compact Study Generator</h1>
-              <p className="text-muted-foreground mt-1">Transform academic PDFs into dense, print-ready study guides</p>
+              {/* Header content removed to avoid duplication with main page header */}
             </div>
             {(showConfiguration || showResults) && (
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -588,6 +608,18 @@ export function CompactStudyGenerator() {
                       <Edit3 className="h-4 w-4" />
                       Edit Study Material
                     </Button>
+                  )}
+                  
+                  {/* Show editing instructions if editing is enabled */}
+                  {results.editingEnabled && results.studyMaterialId && (
+                    <div className="w-full mt-2">
+                      <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm">
+                        <p className="text-blue-800 font-medium mb-1">✨ Your study guide is ready for editing!</p>
+                        <p className="text-blue-700">
+                          Click "Edit Study Material" to customize sections, regenerate images, modify content, and export in different formats.
+                        </p>
+                      </div>
+                    </div>
                   )}
                   {results.html && (
                     <>
@@ -954,6 +986,39 @@ export function CompactStudyGenerator() {
                       <Label htmlFor="enablePostGenerationEditing" className="text-sm font-medium">
                         Enable post-generation editing and customization
                       </Label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Content Quality Verification */}
+                <div className="mt-6 pt-4 border-t border-blue-200">
+                  <h3 className="font-semibold text-blue-800 mb-4">Content Quality & Verification</h3>
+                  <div className="space-y-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="enableContentVerification"
+                        checked={config.enableContentVerification}
+                        onCheckedChange={(checked) => handleConfigChange("enableContentVerification", checked)}
+                      />
+                      <Label htmlFor="enableContentVerification" className="text-sm font-medium">
+                        AI-powered content quality verification
+                      </Label>
+                    </div>
+                    
+                    <div className="ml-6 text-sm text-blue-700 bg-blue-50 p-3 rounded-lg border border-blue-200">
+                      <div className="flex items-start gap-2">
+                        <Brain className="h-4 w-4 mt-0.5 text-blue-600" />
+                        <div>
+                          <p className="font-medium mb-1">Intelligent Content Analysis</p>
+                          <ul className="text-xs space-y-1 text-blue-600">
+                            <li>• Removes repetitive bullet points and redundant information</li>
+                            <li>• Converts meaningless lists into coherent explanations</li>
+                            <li>• Ensures educational value and logical content flow</li>
+                            <li>• Preserves all mathematical formulas and worked examples</li>
+                            <li>• Improves overall study guide quality and usefulness</li>
+                          </ul>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>

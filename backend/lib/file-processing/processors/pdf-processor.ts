@@ -288,10 +288,20 @@ export class PDFProcessor extends BaseFileProcessor {
       // Use our configured Sharp instance to avoid worker thread issues
       const sharp = (await import('../../sharp-config')).default;
       
-      const processedImage = await sharp(imageBuffer, {
+      // Validate and sanitize buffer before processing
+      const sanitizedBuffer = ImageValidator.sanitizeBuffer(imageBuffer);
+      const validation = ImageValidator.validateImageBuffer(sanitizedBuffer);
+      
+      if (!validation.isValid) {
+        console.warn('Buffer validation failed:', validation.error);
+        return sanitizedBuffer; // Return sanitized buffer even if validation fails
+      }
+      
+      const processedImage = await sharp(sanitizedBuffer, {
         // Disable worker threads to prevent module not found errors
         sequentialRead: true,
-        limitInputPixels: false
+        limitInputPixels: false,
+        failOnError: false
       })
         .greyscale() // Convert to grayscale
         .normalize() // Normalize contrast
@@ -301,12 +311,21 @@ export class PDFProcessor extends BaseFileProcessor {
         .toBuffer();
       
       return processedImage;
-    } catch (error) {
+    } catch (error: any) {
+      // Check if this is a worker thread related error
+      if (error.message?.includes('worker') || 
+          error.message?.includes('MODULE_NOT_FOUND') ||
+          error.code === 'MODULE_NOT_FOUND') {
+        console.warn('Sharp worker thread issue detected - this is expected and handled');
+        // Return sanitized buffer without Sharp processing
+        return ImageValidator.sanitizeBuffer(imageBuffer);
+      }
+      
       console.warn('Sharp image preprocessing failed:', error);
       
-      // If Sharp fails completely, skip preprocessing and return original buffer
+      // If Sharp fails completely, return sanitized buffer
       // This ensures OCR can still proceed even if image enhancement fails
-      return imageBuffer;
+      return ImageValidator.sanitizeBuffer(imageBuffer);
     }
   }
 

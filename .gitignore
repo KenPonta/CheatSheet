@@ -25,3 +25,27 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# temporary files
+/tmp/
+*.tmp
+*.temp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/settings.json
+.idea/
+
+# test outputs
+coverage/
+*.log
+
+# build artifacts
+dist/
+build/
+
+# archive (optional - uncomment if you don't want to track archived files)
+# /archive/
