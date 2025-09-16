@@ -1,15 +1,30 @@
 "use client"
 
 import React, { useState, useCallback } from "react"
-// Temporary fallback for Vercel deployment
+// Debug API client for Vercel deployment
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000';
+console.log('Backend URL:', BACKEND_URL);
+
 const apiClient = {
   post: async (endpoint: string, data: any) => {
-    const response = await fetch(endpoint, {
+    const url = `${BACKEND_URL}${endpoint}`;
+    console.log('Making request to:', url);
+    
+    const response = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
+      },
       body: JSON.stringify(data)
     });
-    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    
+    console.log('Response status:', response.status);
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Response error:', errorText);
+      throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+    }
     return response.json();
   }
 };
@@ -232,9 +247,10 @@ export function CompactStudyGenerator() {
   }
 
   const generateCompactStudy = async () => {
-    if (uploadedFiles.length === 0) return
+    try {
+      if (uploadedFiles.length === 0) return
 
-    setIsProcessing(true)
+      setIsProcessing(true)
     setProcessingProgress({
       stage: 'processing',
       progress: 0,
@@ -244,9 +260,12 @@ export function CompactStudyGenerator() {
     setWarnings([])
 
     try {
+      console.log('Starting file processing with', uploadedFiles.length, 'files')
+      
       // Convert files to base64
       const filesData = await Promise.all(
         uploadedFiles.map(async (file) => {
+          console.log('Processing file:', file.name)
           const buffer = await file.arrayBuffer()
           const base64 = Buffer.from(buffer).toString('base64')
           
@@ -258,6 +277,7 @@ export function CompactStudyGenerator() {
             fileType = 'relations'
           }
 
+          console.log('File processed:', file.name, 'Type:', fileType)
           return {
             name: file.name,
             type: fileType,
@@ -265,6 +285,8 @@ export function CompactStudyGenerator() {
           }
         })
       )
+      
+      console.log('All files converted to base64, making API request...')
 
       setProcessingProgress({
         stage: 'extracting',
@@ -287,10 +309,16 @@ export function CompactStudyGenerator() {
         message: 'Generating compact study guide...'
       })
 
+      console.log('Making API request with data:', requestData)
       const data: CompactStudyResponse = await apiClient.post("/api/generate-compact-study", requestData)
+      console.log('✅ Received response from backend:', data)
+      console.log('✅ Has HTML content:', !!data.html)
+      console.log('✅ HTML content length:', data.html?.length)
       
+      console.log('Setting results and showing results...')
       setResults(data)
       setShowResults(true)
+      console.log('✅ Results set, showResults set to true')
       
       if (data.warnings && data.warnings.length > 0) {
         setWarnings(data.warnings)
